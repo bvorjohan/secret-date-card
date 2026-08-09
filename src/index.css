@@ -24,6 +24,15 @@
   --color-foil: #cfd2d6;
   --color-foil-dark: #9a9ea3;
   --color-cream: #fff3d6;
+  /* Added for the ribbon-banner / colored-chance-row pass (design
+     handed off from another agent — see docs/SPEC.md "Lotto reference
+     board"). --color-blue is the ribbon-banner color; --color-green is
+     a true saturated green for the chance-row tabs, distinct from the
+     olive/lime already above. */
+  --color-blue: #2f5fa8;
+  --color-blue-dark: #1f3f78;
+  --color-green: #2e8b3d;
+  --color-green-dark: #1d6b2a;
 
   --radius-lg: 14px;
   --radius-md: 8px;
@@ -140,21 +149,29 @@ a {
  * `.tstudy-price` / `.tstudy-seal` pair, just swapping the seal for
  * our own personal touch on the right instead of a second starburst.
  */
-.ticket__price {
+/* "FREE!" corner badge — reuses .stamp-seal's jagged shape (see below)
+   via a compound-selector override, same trick as
+   .ticket__playarea-badge used to. Gold instead of the default black
+   fill, since this one's meant to read as a starburst price tag, not
+   a seal of authenticity. */
+.ticket__free-badge {
   position: absolute;
-  top: -14px;
+  top: -16px;
   left: -14px;
   z-index: 5;
-  padding: 5px 12px;
-  background: var(--color-ticket);
-  border: 3px solid var(--color-ink);
-  border-radius: 6px;
-  font-family: var(--font-condensed);
-  font-size: 1.15rem;
-  letter-spacing: 0.02em;
-  color: var(--color-ink);
-  transform: rotate(-4deg);
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.stamp-seal.ticket__free-badge {
+  width: 78px;
+  height: 78px;
+  background: var(--color-gold);
+  transform: rotate(-8deg);
+}
+
+.ticket__free-badge .stamp-seal__text {
+  font-size: 0.85rem;
+  color: var(--color-red-dark);
+  padding: 0;
 }
 
 .ticket__mascot {
@@ -165,13 +182,42 @@ a {
 }
 
 .ticket__header {
-  position: relative; /* positioning context for .ticket__header-star */
   text-align: center;
-  margin: 20px 0 0;
-  /* Small left clearance for the price tag, larger right clearance
-     for the mascot sticker — asymmetric because the two badges are
-     very different sizes, unlike /ticket-study's roughly-matched pair. */
+  margin: 12px 0 0;
+  /* Asymmetric on purpose, matching the reference mockup: "SECRET" /
+     "DATE" / "BLOWOUT!" are deliberately scooched left, making room
+     for the mascot photo up top-right rather than centering under/
+     around it. (This is NOT the "should be centered" bug — that
+     feedback was specifically about the "scratch one off to / win a
+     date / chances" cluster below, which the mockup DOES center on
+     the full card since the mascot doesn't reach that far down. See
+     .ticket__subhead below for how that cluster escapes this
+     asymmetry to center on the ticket's true middle instead.) */
   padding: 0 104px 0 24px;
+}
+
+.ticket__headline-top {
+  position: relative;
+  margin-bottom: 3px;
+}
+
+/*
+ * .ticket__subhead groups "Scratch one off to" / "Win a date!" /
+ * "★ N chances to win ★" as one tight unit (see the margin rules
+ * further down). Unlike .ticket__headline-top/.ticket__headline above
+ * it, this cluster sits below where the mascot reaches, so the mockup
+ * centers it on the *whole* card rather than scooching it left like
+ * the title — negative margins here cancel out .ticket__header's own
+ * asymmetric padding (24px left / 104px right) so this block spans
+ * the same box .ticket__header itself sits in (symmetric relative to
+ * the ticket) instead of inheriting the lopsided content box its
+ * title siblings use. Confirmed via getBoundingClientRect: ticket
+ * center x=195; before this, the whole cluster (and the title above
+ * it) centered around x=155 — a 40px left skew off the ticket's true
+ * middle, which was the "not balanced" bug.
+ */
+.ticket__subhead {
+  margin: 3px -104px 0 -24px;
 }
 
 /*
@@ -217,11 +263,19 @@ a {
   transform: rotate(-12deg);
 }
 
-.ticket__header-star--2 {
-  bottom: 4px;
-  left: 8px;
+/*
+ * Unlike .ticket__header-star--1 (fixed pixel offsets against a
+ * fixed-width ribbon), the kicker star flows inline next to the text
+ * via flexbox on .ticket__kicker instead — fixed offsets are exactly
+ * what stranded this star out near the ticket's edge the first time
+ * .ticket__subhead's width changed (it used to be scoped to a much
+ * narrower box). Flowing with the text means it can't drift again if
+ * the text or its container's width changes.
+ */
+.ticket__kicker-star {
   width: 12px;
   height: 12px;
+  flex-shrink: 0;
   transform: rotate(10deg);
   opacity: 0.85;
 }
@@ -231,7 +285,395 @@ a {
   align-items: center;
   justify-content: center;
   gap: 20px;
-  margin: 14px 0 0;
+  margin: 8px 0 0;
+}
+
+/*
+ * Ribbon banner — ported directly from a working reference the user
+ * supplied (a standalone HTML file demonstrating this exact
+ * construction), not reinvented. Three stacked pieces, back to front:
+ *
+ * 1. `.ticket__ribbon-tail` (×2, z-index 1) — big notched-chevron
+ *    shapes sitting BEHIND the face and slightly LOWER than it
+ *    (`translateY` offset below center). Most of each tail is hidden
+ *    behind the face; only the outer point sticks out past its edge.
+ *    The lower offset is what actually sells "folded back," not the
+ *    color/shading alone — everything before this attempt skipped it.
+ * 2. `.ticket__ribbon-fold` (×2, z-index 2) — small, skewed, near-
+ *    black slivers sitting right at the seam where each tail
+ *    disappears behind the face: a crease shadow, not a shape of its
+ *    own.
+ * 3. `.ticket__ribbon` (the face, z-index 3) — the flat-colored
+ *    rectangle on top, holding the text. Uses the same "own background
+ *    is the outline color, ::before inset 3px is the actual fill"
+ *    trick as the rest of this card (StampSeal, the jagged banner) —
+ *    a plain `border` doesn't survive being combined with the tail's
+ *    clip-path elsewhere, so this card never uses `border` for
+ *    outlines, only this layering trick.
+ *
+ * `--ribbon-mid`/`--ribbon-tail`/`--ribbon-fold` are three shades
+ * (light to dark), not two — the reference's own gold/red variants
+ * both use three, and two wasn't enough to read as depth.
+ */
+.ticket__ribbon-wrap {
+  --ribbon-mid: var(--color-blue);
+  --ribbon-tail: var(--color-blue-dark);
+  --ribbon-fold: #142a4d;
+  position: relative;
+  display: inline-block;
+}
+
+.ticket__ribbon-tail {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 30px;
+  height: 60%;
+  min-height: 20px;
+  background: var(--ribbon-tail);
+  /* The reference applies a plain `border` directly to this clipped
+     shape — it won't stroke the diagonal notch edge (border follows
+     the box, not the clip), only the flat edges, but at this size
+     that's not visually distracting the way it was on the face-sized
+     shapes in earlier attempts. Matching the reference as given. */
+  border: 3px solid var(--color-ink);
+}
+
+.ticket__ribbon-tail--left {
+  right: calc(100% - 15px);
+  transform: translateY(calc(-50% + 4px));
+  clip-path: polygon(100% 0%, 100% 100%, 0% 100%, 22% 50%, 0% 0%);
+}
+
+.ticket__ribbon-tail--right {
+  left: calc(100% - 15px);
+  transform: translateY(calc(-50% + 4px));
+  clip-path: polygon(0% 0%, 100% 0%, 78% 50%, 100% 100%, 0% 100%);
+}
+
+.ticket__ribbon-fold {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 9px;
+  height: 40%;
+  min-height: 14px;
+  background: var(--ribbon-fold);
+}
+
+.ticket__ribbon-fold--left {
+  left: -1px;
+  transform: translateY(calc(-50% + 4px)) skewY(25deg);
+}
+
+.ticket__ribbon-fold--right {
+  right: -1px;
+  transform: translateY(calc(-50% + 4px)) skewY(-25deg);
+}
+
+.ticket__ribbon {
+  position: relative;
+  z-index: 3;
+  display: block;
+  margin: 0;
+  padding: 6px 26px;
+  background: var(--color-ink);
+  font-family: var(--font-condensed);
+  color: var(--color-cream);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ticket__ribbon::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 45%),
+    var(--ribbon-mid);
+}
+
+.ticket__ribbon-wrap.ticket__ribbon--gold {
+  --ribbon-mid: var(--color-gold);
+  --ribbon-tail: #9c6500;
+  --ribbon-fold: #5c3900;
+}
+
+/*
+ * Everything below is scoped with a compound selector
+ * (`.ticket__ribbon.ticket__ribbon--x`), matching only the face —
+ * NOT plain `.ticket__ribbon--x`, which would also match the wrap
+ * (Ribbon.tsx puts the variant className on both, since --gold above
+ * needs to reach the wrap for its CSS variables). A real bug shipped
+ * from getting this wrong once already: unscoped `--lg` padding/
+ * font-size landed on the wrap too, inflating it bigger than the
+ * face, which threw off the tail pieces' position math (`right:
+ * calc(100% - 15px)` etc. is relative to the wrap, and silently
+ * assumes wrap size == face size). Confirmed via
+ * getBoundingClientRect() before and after, not assumed.
+ */
+.ticket__ribbon.ticket__ribbon--gold {
+  color: var(--color-red-dark);
+}
+
+.ticket__ribbon.ticket__ribbon--sm {
+  padding: 5px 24px;
+  font-size: clamp(0.92rem, 4.6vw, 1.1rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  -webkit-text-stroke: 0.5px var(--color-ink);
+}
+
+.ticket__ribbon.ticket__ribbon--lg {
+  padding: 7px 30px;
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 8.6vw, 2.15rem);
+  white-space: nowrap;
+  color: #fff;
+  -webkit-text-stroke: 1.5px var(--color-ink);
+  text-shadow: 2px 2px 0 var(--color-blue-dark);
+}
+
+/*
+ * Plain flat rectangle, NOT a .ticket__ribbon — the mockup's
+ * "WIN UP TO 100%..." box has square-ish bordered corners, no fold/
+ * tail styling. Same "border + border-radius" vocabulary as
+ * .ticket__info-panel/.ticket__no-purchase/.ticket__serial.
+ *
+ * Internal layout is a 3-column flex row (label / huge figure / label),
+ * NOT stacked centered lines — confirmed by directly re-reading the
+ * mockup image (a small "WIN / UP TO" label on the left, "100%" huge
+ * and dominant in the center, a small "OF AN / AWESOME / DATE" label
+ * on the right, all vertically centered, filling the box edge-to-edge).
+ * A stacked-lines version was tried first and was wrong — see the plan
+ * file for why. Widened (no more max-width squeeze) since 3 columns
+ * naturally wants more width than 3 stacked lines did.
+ */
+.ticket__prize-box {
+  flex: 2;
+  min-width: 0;
+  margin: 0;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  background: var(--color-blue-dark);
+  border: 3px solid var(--color-ink);
+  border-radius: var(--radius-sm);
+}
+
+.ticket__prize-label {
+  flex: 1;
+  font-family: var(--font-condensed);
+  font-size: clamp(0.6rem, 2.6vw, 0.7rem);
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--color-cream);
+  text-align: center;
+}
+
+.ticket__prize-figure {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 10.5vw, 2.6rem);
+  line-height: 1;
+  color: #fff;
+  -webkit-text-stroke: 1.5px var(--color-ink);
+}
+
+/*
+ * Jagged-edge banner: a zigzag top/bottom clip-path, echoing the
+ * torn/stamped-paper edge real tickets use for their biggest promise
+ * line. Point count is fixed (13 teeth) — regenerate the polygon if
+ * you need a different density. Same outline/gloss/shadow stack as
+ * .ticket__ribbon above and for the same reason: a flat clipped fill
+ * with no shape-following stroke reads thin next to everything else
+ * on the card, which is all thick-outlined.
+ */
+.ticket__jagged-banner {
+  --jagged-path: polygon(
+    0% 8%,
+    8.33% 0%,
+    16.66% 8%,
+    25% 0%,
+    33.33% 8%,
+    41.66% 0%,
+    50% 8%,
+    58.33% 0%,
+    66.66% 8%,
+    75% 0%,
+    83.33% 8%,
+    91.66% 0%,
+    100% 8%,
+    100% 92%,
+    91.66% 100%,
+    83.33% 92%,
+    75% 100%,
+    66.66% 92%,
+    58.33% 100%,
+    50% 92%,
+    41.66% 100%,
+    33.33% 92%,
+    25% 100%,
+    16.66% 92%,
+    8.33% 100%,
+    0% 92%
+  );
+  position: relative;
+  margin: 0;
+  padding: 7px 18px 9px;
+  background: var(--color-ink);
+  color: var(--color-red-dark);
+  text-align: center;
+  clip-path: var(--jagged-path);
+  filter: drop-shadow(3px 4px 0 rgba(0, 0, 0, 0.4));
+}
+
+/*
+ * Same "own background is the outline, ::before at z-index:-1 inset
+ * by 3px is the actual color" construction as .ticket__ribbon — see
+ * the long comment there for why the more obvious "colored background
+ * + black ::before behind it" doesn't work (the ::before paints over
+ * the element's own background regardless of z-index sign).
+ */
+.ticket__jagged-banner::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, transparent 40%),
+    linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-gold) 100%);
+  clip-path: var(--jagged-path);
+}
+
+/*
+ * Barcode lives directly on .ticket__info-panel's own cream background
+ * now (see below) — no separate white background box needed since the
+ * panel itself is cream, and no border either (a plain graphic, not a
+ * bounded UI element). Left-aligned, not centered, matching the
+ * reference photo (docs/reference/ChatGPT Image Aug 8...png).
+ */
+.ticket__barcode {
+  width: 130px;
+  height: 22px;
+  margin: 0 0 4px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-ink) 0px,
+    var(--color-ink) 2px,
+    transparent 2px,
+    transparent 4px,
+    var(--color-ink) 4px,
+    var(--color-ink) 7px,
+    transparent 7px,
+    transparent 9px,
+    var(--color-ink) 9px,
+    var(--color-ink) 10px,
+    transparent 10px,
+    transparent 13px,
+    var(--color-ink) 13px,
+    var(--color-ink) 16px,
+    transparent 16px,
+    transparent 18px
+  );
+  background-repeat: repeat-x;
+}
+
+.ticket__jagged-banner em {
+  font-style: normal;
+  color: #fff;
+  -webkit-text-stroke: 1px var(--color-red-dark);
+}
+
+.ticket__jagged-banner {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 5vw, 1.2rem);
+  line-height: 1.05;
+  -webkit-text-stroke: 1.2px var(--color-ink);
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+/*
+ * Side by side, not stacked — the reference mockup runs the prize box
+ * and the "no purchase necessary" tag as one compact row, not two
+ * vertically-stacked elements (the "not compact" feedback). Both are
+ * now plain rectangles (.ticket__prize-box, right above), so this
+ * doesn't need the >10px gap the old ribbon version needed to keep an
+ * opaque sibling from covering a fold triangle underneath it.
+ */
+.ticket__prize-row {
+  margin: 8px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ticket__no-purchase {
+  flex-shrink: 0;
+  width: 80px;
+  margin: 0;
+  padding: 2px 5px;
+  background: var(--color-gold);
+  border: 2px solid var(--color-ink);
+  border-radius: 4px;
+  font-family: var(--font-condensed);
+  font-size: 0.58rem;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--color-red-dark);
+  text-align: center;
+  transform: rotate(-2deg);
+}
+
+/*
+ * A cream/paper-colored panel, NOT a blue box — corrected against the
+ * reference photo (docs/reference/ChatGPT Image Aug 8...png): the
+ * bottom of the ticket is a distinct cream color-block (like a
+ * receipt/stub), edge-to-edge with the ticket's own border, and blue
+ * is used only for the thin "NOT A REAL LOTTERY TICKET" bar within it
+ * (.ticket__legal-line, right below) — not the whole panel. Bleeds to
+ * the ticket's own padding/border edges via negative margins (same
+ * trick as .ticket__playarea's partial bleed) rather than sitting
+ * inset with its own border like the earlier (wrong) blue-box version
+ * did — bottom corners rounded to match the ticket's own radius so it
+ * doesn't poke square corners past the ticket's rounded ones.
+ */
+.ticket__info-panel {
+  position: relative;
+  margin: 8px -18px -20px;
+  padding: 8px 18px 10px;
+  background: var(--color-ticket);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  text-align: center;
+}
+
+/* The one blue element in the panel — everything else here sits
+   directly on the cream background. */
+.ticket__legal-line {
+  margin: 0 0 4px;
+  padding: 3px 8px;
+  background: var(--color-blue-dark);
+  border-radius: 3px;
+  font-family: var(--font-condensed);
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-cream);
+}
+
+.ticket__fine-print {
+  margin: 0;
+  font-family: var(--font-stamp);
+  font-size: 0.54rem;
+  line-height: 1.25;
+  color: var(--color-red-dark);
+  opacity: 0.85;
 }
 
 .ticket__stars-row .ticket__star {
@@ -264,10 +706,11 @@ a {
 .ticket__title {
   margin: 0;
   font-family: var(--font-display);
-  /* Sized to fit the longest line ("SECRET DATE", 2 words) inside the
-     card at the narrowest supported viewport. */
-  font-size: clamp(1.6rem, 8.8vw, 2.3rem);
-  line-height: 1.05;
+  /* "DATE" / "BLOWOUT!" are single words now (the "SECRET" that used
+     to open the line moved to its own ribbon above) so this can run
+     bigger than when it had to fit two words per line. */
+  font-size: clamp(2rem, 12vw, 3rem);
+  line-height: 1.02;
   font-weight: 400;
   letter-spacing: 0.01em;
   /*
@@ -288,30 +731,85 @@ a {
   color: var(--color-cream);
 }
 
-/* Small skewed kicker line, between the two headline words and the
-   big arced declaration below — matches .tstudy-winupto. */
-.ticket__kicker {
-  margin: 8px 0 -2px;
-  font-family: var(--font-condensed);
-  font-size: clamp(0.8rem, 4vw, 1rem);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-gold-light);
-  -webkit-text-stroke: 1px var(--color-ink);
-  text-shadow: 1px 2px 0 var(--color-red-dark);
-  transform: skewX(-4deg);
+/*
+ * The header's ribbon banners ("SECRET" / "WIN A DATE!" /
+ * "★ 6 CHANCES TO WIN ★") sit between/around the two big arced words.
+ * Descendant selector (not `>` direct-child) since "Secret" lives
+ * inside `.ticket__headline-top` and "Win a date!"/the chances ribbon
+ * live inside `.ticket__subhead` — wrapper divs added for the general
+ * layout pass (see their own comments up near .ticket__header) put the
+ * ribbon-wrap a level deeper than a plain child of `.ticket__header`.
+ */
+.ticket__header .ticket__ribbon-wrap {
+  display: block;
+  width: fit-content;
+  margin: 8px auto;
 }
 
-/* The "promise" line — matches .tstudy-jackpot ("$1,000,000!"): the
-   biggest, boldest single declaration on the card. */
-.ticket__declare {
-  margin: 0;
+.ticket__headline-top .ticket__ribbon-wrap {
+  margin: 0 auto;
+}
+
+/*
+ * "Win a date!" and "★ N chances to win ★" (plus the plain-text
+ * kicker right above them, .ticket__kicker below) are one dense,
+ * balanced cluster in the reference mockup, not evenly-spaced banners
+ * of similar weight (the "still kind of confusing"/"lost its whimsy"
+ * feedback: a wall of same-weight bars reads as a list, not a
+ * composed unit). (.ticket__subhead's own margin/position:relative
+ * live up near .ticket__header, alongside the comment explaining the
+ * centering fix.)
+ */
+.ticket__subhead .ticket__ribbon-wrap {
+  margin: 0 auto;
+}
+
+.ticket__ribbon-wrap.ticket__ribbon--chances {
+  margin-top: 2px;
+}
+
+/*
+ * Plain kicker text, not a ribbon — the reference mockup's "SCRATCH
+ * ONE OFF TO" is small stroked text sitting tight above the "WIN A
+ * DATE!" ribbon, not its own boxed banner. Giving it a ribbon shape
+ * (the previous approach) was what turned this cluster into a wall of
+ * three same-weight bars instead of one composed unit.
+ */
+.ticket__kicker {
+  margin: 0 0 -3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-family: var(--font-display);
-  font-size: clamp(1.7rem, 9vw, 2.2rem);
-  line-height: 1;
-  color: var(--color-cream);
-  -webkit-text-stroke: 2px var(--color-ink);
-  text-shadow: 2px 3px 0 #b3660a;
+  font-size: clamp(0.85rem, 4vw, 1.05rem);
+  letter-spacing: 0.02em;
+  color: var(--color-gold);
+  -webkit-text-stroke: 1px var(--color-ink);
+  text-shadow: 1px 2px 0 var(--color-red-dark);
+  transform: rotate(-1deg);
+}
+
+/*
+ * Alternating tilt on the header/footer ribbons — echoes the rotation
+ * already used on the FREE badge and the "no purchase necessary" tag
+ * elsewhere on the card, so the whole sheet reads as loosely stamped/
+ * printed pieces rather than perfectly axis-aligned bars (the latter
+ * is what made the ribbon stack feel mechanical instead of whimsical).
+ * Scoped to `.ticket__ribbon-wrap` only (compound selector, same
+ * convention as `--gold`/`--lg`/`--sm` above) — Ribbon.tsx puts the
+ * className on both the wrap and the face, and rotating the wrap
+ * alone already carries the face/tails/fold along with it as one
+ * rigid unit; an unscoped rule would also rotate the face a second
+ * time relative to the already-rotated wrap and throw the tails out
+ * of alignment with it.
+ */
+.ticket__ribbon-wrap.ticket__ribbon--tilt-left {
+  transform: rotate(-2deg);
+}
+
+.ticket__ribbon-wrap.ticket__ribbon--tilt-right {
+  transform: rotate(2deg);
 }
 
 /*
@@ -324,9 +822,8 @@ a {
  * to read as "a frame," not compete with them for that texture.
  */
 .ticket__playarea {
-  position: relative; /* positioning context for .ticket__playarea-badge */
-  margin: 12px -4px 4px;
-  padding: 14px 10px 10px;
+  margin: 8px -4px 4px;
+  padding: 6px;
   border: 3px solid var(--color-ink);
   outline: 2px solid var(--color-gold);
   outline-offset: -6px;
@@ -336,198 +833,194 @@ a {
   background-size: var(--halftone-size);
 }
 
-/*
- * "N CHANCES TO WIN" badge — reuses .stamp-seal's shape/shadow, hung
- * off the play area's top-right corner rather than the card's own
- * corner (already spoken for by the mascot). Real tickets often float
- * a second badge at the play area's shoulder, not just the card's top
- * corner — this also doubles as the thing that breaks up the empty
- * gap between the headline and the play area. See docs/SPEC.md
- * "Lotto reference board" (critique pass).
- */
-.ticket__playarea-badge {
-  position: absolute;
-  top: -34px;
-  right: -10px;
-  z-index: 4;
-}
-
-/* Compound selector (not just .ticket__playarea-badge) so this wins
-   over .stamp-seal's own width/height regardless of declaration
-   order — two classes outrank one at equal specificity either way. */
-.stamp-seal.ticket__playarea-badge {
-  width: 86px;
-  height: 86px;
-}
-
-.ticket__playarea-badge .stamp-seal__text {
-  font-size: 0.62rem;
-  padding: 0 8px;
-}
-
+/* Single column of horizontal "chance" rows — was a 2-column grid of
+   square tiles before this pass. See ScratchPanel.tsx/.scratch-row*
+   below for the row itself. */
 .ticket__grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-  padding: 2px;
-}
-
-/* The bold banner line under the play area — matches .tstudy-winup20
-   ("WIN UP TO 20 TIMES!"): a big, flat-white, black-stroked claim.
-   The joke it sets up ("Not valid after the heat death of the
-   universe.") pays off two lines down, in the fine print. */
-.ticket__banner-line {
-  margin: 10px 0 0;
-  text-align: center;
-  font-family: var(--font-condensed);
-  font-size: clamp(1.15rem, 6.5vw, 1.55rem);
-  letter-spacing: 0.02em;
-  color: #fff;
-  -webkit-text-stroke: 2px var(--color-ink);
-  text-shadow: 2px 3px 0 var(--color-red-dark);
-}
-
-.ticket__footer {
-  margin-top: 14px;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/*
+ * The "Good luck, love!" tag + serial — inside .ticket__info-panel
+ * (see Home.tsx), directly on its cream background, right below the
+ * barcode. Colors switched to the panel's own dark-ink/red-dark
+ * palette (from cream-on-blue) now that the panel itself is cream.
+ */
+.ticket__footer-row {
+  margin: 0 0 5px;
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
-.ticket__footer-text {
-  flex: 1;
-}
-
-.ticket__footer p {
+.ticket__footer-tag {
   margin: 0;
   font-family: var(--font-stamp);
-  font-size: 0.62rem;
-  color: var(--color-cream);
-  opacity: 0.85;
-  text-align: left;
-  line-height: 1.5;
+  font-size: 0.64rem;
+  color: var(--color-red-dark);
 }
 
 .ticket__serial {
   flex-shrink: 0;
-  padding: 3px 10px;
-  background: var(--color-ticket);
+  padding: 2px 8px;
   border: 2px solid var(--color-ink);
   border-radius: 4px;
   font-family: var(--font-condensed);
-  font-size: 0.75rem;
-  color: var(--color-ink);
+  font-size: 0.7rem;
+  color: var(--color-red-dark);
   white-space: nowrap;
 }
 
-/* ---------- Scratch panel ---------- */
+/* Small dark stars at the panel's bottom corners — the reference
+   photo has these flanking the fine print at the very bottom of the
+   card, distinct from .ticket__star's gold gradient (these sit on the
+   cream panel, so dark/ink reads right, not gold). */
+.ticket__corner-star {
+  position: absolute;
+  bottom: 4px;
+  width: 11px;
+  height: 11px;
+  background: var(--color-ink);
+}
+
+.ticket__corner-star--left {
+  left: 10px;
+}
+
+.ticket__corner-star--right {
+  right: 10px;
+}
+
+/* ---------- Scratch row ("chance" ticket stub) ---------- */
 
 /*
- * The tilt lives here, on the wrapper, NOT on .scratch-panel (which
- * has the animated/repeating gradient backgrounds). Rotating the same
- * element that owns a repeating-linear-gradient + an animated,
- * repeated background-position produced a hard vertical seam through
- * the tile — visible on a real device/GPU, not reproducible in this
- * machine's headless-Chromium screenshots, which points at a
- * GPU-rasterization precision issue (the gradient math evaluated
- * directly in rotated space) rather than a CSS logic bug. Rotating an
- * unrotated child's already-composited layer as a wrapper sidesteps
- * that: the gradient rasterizes normally, then the finished bitmap is
- * rotated as one piece. If you reintroduce the seam by moving this
- * rotation back onto .scratch-panel, that's why.
+ * A horizontal row, not a rotated square tile — see ScratchPanel.tsx's
+ * top comment for why there's no rotation-wrapper workaround here
+ * despite one being load-bearing on the old grid tiles.
  */
-.scratch-panel-slot {
+.scratch-row {
   position: relative;
-  aspect-ratio: 4 / 5;
-}
-
-.scratch-panel-slot:nth-child(odd) {
-  transform: rotate(-2deg);
-}
-
-.scratch-panel-slot:nth-child(even) {
-  transform: rotate(2deg);
-}
-
-.scratch-panel {
-  position: relative;
+  display: flex;
+  align-items: stretch;
   width: 100%;
-  height: 100%;
-  border: 4px solid var(--color-ink);
-  border-radius: var(--radius-md);
+  height: 74px;
   padding: 0;
+  border: 3px solid var(--color-ink);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   overflow: hidden;
   background: var(--color-ink);
   -webkit-tap-highlight-color: transparent;
-  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.35);
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.35);
 }
 
-.scratch-panel__content {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+/*
+ * The numbered tab, left edge — color cycles through 6 real,
+ * saturated colors (blue/red/green/purple/gold/blue) per row, the
+ * same repeating-motif palette used on the reference board's own
+ * "chance" callouts. `nth-child` because .scratch-row is a direct
+ * child of .ticket__grid, one per date option, in order.
+ */
+.scratch-row__tab {
+  flex-shrink: 0;
+  width: 58px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  color: var(--color-ticket);
-  padding: 8px;
+  gap: 1px;
+  padding: 4px 2px;
+  border-right: 3px solid var(--color-ink);
+  font-family: var(--font-condensed);
+  font-size: 0.6rem;
+  letter-spacing: 0.03em;
+  color: var(--color-cream);
   text-align: center;
 }
 
-.scratch-panel__icon {
-  font-size: 1.8rem;
+.scratch-row__tab-star {
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.scratch-row__tab-num {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.scratch-row:nth-child(6n + 1) .scratch-row__tab {
+  background: var(--color-blue);
+}
+
+.scratch-row:nth-child(6n + 2) .scratch-row__tab {
+  background: var(--color-red);
+}
+
+.scratch-row:nth-child(6n + 3) .scratch-row__tab {
+  background: var(--color-green);
+}
+
+.scratch-row:nth-child(6n + 4) .scratch-row__tab {
+  background: var(--color-purple);
+}
+
+.scratch-row:nth-child(6n + 5) .scratch-row__tab {
+  background: var(--color-gold);
+  color: var(--color-ink);
+}
+
+.scratch-row:nth-child(6n + 6) .scratch-row__tab {
+  background: var(--color-blue-dark);
+}
+
+.scratch-row__body {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.scratch-row__content {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-ticket);
+  padding: 0 14px;
+}
+
+.scratch-row__icon {
+  flex-shrink: 0;
+  font-size: 1.6rem;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
 }
 
-.scratch-panel__teaser {
+.scratch-row__teaser {
   font-family: var(--font-body);
   font-weight: 700;
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   color: var(--color-ticket);
 }
 
-.scratch-panel__piece {
-  font-family: var(--font-stamp);
-  font-size: 0.5rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: rgba(255, 250, 240, 0.55);
-}
-
 /*
- * One gradient layer, one animation, animation-direction: alternate.
- * This used to be three overlapping gradient layers at three angles
- * (a static color wash, a repeating-linear-gradient stripe texture,
- * and a separate absolutely-positioned shimmer child animating
- * background-position through hand-derived tile-size math) — that
- * combination produced a real, visible rendering seam on-device
- * (never reproducible in this machine's headless-Chromium
- * screenshots, so likely a GPU rasterization precision issue rather
- * than a CSS logic bug). Rather than keep patching a fragile
- * construction, this replaced it with the standard shimmer/skeleton
- * technique used all over the web: a single gradient panned back and
- * forth. `alternate` means the animation reverses instead of jumping
- * back to its start — there is no wrap-around point at all, so there
- * is nothing for a tiling seam to appear at, by construction. Keep it
- * this simple; don't re-add extra gradient layers or a separate
- * ANIMATED element without a real reason.
- *
- * Colors are metallic silver, not the earlier rainbow/pastel wash —
- * real scratch-ticket foil is silver, not a color gradient (see
- * docs/SPEC.md "Visual language: lotto reference board"). The grain
- * texture that sells the "foil" look is a separate, static (never
- * animated) child element — .scratch-panel__grain, below — not another
- * layer on this same animated background, specifically to avoid
- * reintroducing the multi-layer-animation risk above.
+ * One gradient layer, one animation, animation-direction: alternate —
+ * carried over unchanged from the old .scratch-panel__foil (see the
+ * project history in git/docs/SPEC.md "Shimmer implementation" for
+ * why it's this simple and not simpler). Colors are metallic silver,
+ * not a color wash — real scratch-ticket foil is silver.
  */
-.scratch-panel__foil {
+.scratch-row__foil {
   position: absolute;
   inset: 0;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(
     100deg,
     #8b8f95 0%,
@@ -540,30 +1033,35 @@ a {
   );
   background-size: 250% 100%;
   animation: shimmer 2.2s ease-in-out infinite alternate;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
   transition: transform 0.5s ease, opacity 0.5s ease;
+  /* Torn-paper edge on the side facing the colored tab — a jagged
+     zigzag rather than a clean rectangle, like the coating's already
+     lifting slightly at the perforation. Percentages, not fixed px,
+     so it scales with the row's own (fixed, but shared-class) height. */
+  clip-path: polygon(
+    6% 0%,
+    0% 8%,
+    6% 16%,
+    0% 24%,
+    6% 32%,
+    0% 40%,
+    6% 48%,
+    0% 56%,
+    6% 64%,
+    0% 72%,
+    6% 80%,
+    0% 88%,
+    6% 100%,
+    100% 100%,
+    100% 0%
+  );
 }
 
-/*
- * Static grain overlay, sitting between the shine gradient and the
- * watermark/text. A plain sibling element (not another background
- * layer on .scratch-panel__foil) on purpose — see the comment above.
- */
-.scratch-panel__grain {
+/* Static grain overlay — a plain sibling, not another layer on the
+   animated .scratch-row__foil (see the comment above it). */
+.scratch-row__grain {
   position: absolute;
   inset: 0;
-  /*
-   * Two static layers: fine grain dots, plus a diagonal streak
-   * texture for a richer brushed-metal read (matching the play area
-   * in /ticket-study). Both live here, not on .scratch-panel__foil,
-   * because that element is animated — see the shimmer history above
-   * for why stacking extra layers onto an animated background is the
-   * thing to avoid.
-   */
   background-image:
     repeating-linear-gradient(
       115deg,
@@ -577,19 +1075,11 @@ a {
   pointer-events: none;
 }
 
-.scratch-panel__watermark {
-  width: 56%;
-  max-width: 84px;
-  opacity: 0.7;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
-  pointer-events: none;
-}
-
-.scratch-panel__foil::after {
-  content: "★ SCRATCH ★";
+.scratch-row__foil-label {
+  position: relative;
   font-family: var(--font-display);
   font-size: 0.62rem;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   color: var(--color-ink);
   opacity: 0.65;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
@@ -604,12 +1094,12 @@ a {
   }
 }
 
-.scratch-panel.is-revealing .scratch-panel__foil {
-  transform: scale(1.4) rotate(6deg);
+.scratch-row.is-revealing .scratch-row__foil {
+  transform: scale(1.3);
   opacity: 0;
 }
 
-.scratch-panel.is-revealing .scratch-panel__content {
+.scratch-row.is-revealing .scratch-row__content {
   animation: pop-in 0.4s ease 0.15s backwards;
 }
 
@@ -625,8 +1115,8 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scratch-panel__foil,
-  .scratch-panel__content {
+  .scratch-row__foil,
+  .scratch-row__content {
     transition: none;
     animation: none;
   }

@@ -217,10 +217,15 @@ favor of simplicity — see decision log below).
 
 Sequence on tap:
 1. Panel enters `is-revealing` state (CSS class toggle).
-2. Foil overlay scales up, rotates slightly, and fades out (0.5s).
+2. Foil overlay scales up and fades out (0.5s).
 3. Panel content (icon + teaser) pops in underneath.
 4. After `REVEAL_DELAY_MS` (550ms, defined in the component), the app
    navigates to `/date/:id`.
+
+Still only ever shows the icon + vague teaser, never the real
+title/description — that stays exclusive to `/date/:id`. This mattered
+enough to call out explicitly during the row-layout pass below, since
+the mockup it followed showed full details inline.
 
 The delay exists purely so the animation is visible before navigation;
 if the animation timing changes, keep the constant and the CSS
@@ -483,6 +488,66 @@ caught:
   density there comes from graphics, not verbosity. So the fix was
   the one missing callout badge above, not padding out the fine print.
 
+**Row-layout pass — ribbons, colored "chance" rows, footer banner
+block.** A design mockup from another agent (two mobile screenshots:
+un-scratched and scratched states) pushed the direction further —
+built out close to literally, with one deliberate exception. Layout
+changed from a 2-column grid of square tiles to a single-column stack
+of horizontal ticket-stub rows:
+
+- **`ScratchPanel`/`.scratch-row*`**: each date option is now a full-
+  width row — a colored numbered tab (`.scratch-row__tab`, "CHANCE
+  #n") on the left, scratch foil + content filling the rest. Tab color
+  cycles blue/red/green/purple/gold/blue via `nth-child(6n+…)` in
+  index.css (new tokens `--color-blue`/`--color-green` alongside the
+  existing `--color-red`/`--color-purple`/`--color-gold`). No per-row
+  rotation (the old grid tiles alternately tilted via `nth-child(odd/
+  even)`) — these rows read as a neat aligned stub list, not a loose
+  cut-apart sheet. That also means the shimmer animation no longer
+  needs the unrotated-wrapper workaround the tiles required (see
+  "Shimmer implementation" below) — there's no rotation for the old
+  GPU-rasterization seam bug to trigger on, so `.scratch-row__foil`
+  just has the animated gradient directly.
+- **Torn edge**: `.scratch-row__foil` has a zigzag `clip-path` on the
+  side facing the tab, so the scratch coating reads as already
+  slightly torn/lifted, not a clean rectangle.
+- **Ribbon banners** (`.ticket__ribbon`, header: "Secret" / "Scratch
+  one off to" / "Win a date!" / "★ N chances to win ★"): built with
+  `clip-path` (a 6-point pennant polygon), not the more common
+  pseudo-element-border-triangle technique — that technique needs the
+  triangle's border-width in fixed px roughly matching half the
+  element's height, which breaks across ribbon variants with different
+  font sizes/wrapped text. `clip-path` percentages scale with the
+  box's own rendered size regardless, so one implementation covers
+  every ribbon. This is the "ribbon banner shapes" item earlier
+  passes had flagged as not yet attempted.
+- **Jagged banner** (`.ticket__jagged-banner`, "Big dates! Big
+  memories! Maybe even *big love!?*"): a 6-tooth zigzag top/bottom
+  border, also via `clip-path`.
+- **Barcode** (`.ticket__barcode`): a `repeating-linear-gradient` bar
+  pattern — decorative only, not scannable, same as every real
+  fake-lottery footer.
+- **Footer copy rewritten** around the mockup's fine-print voice: "★
+  Good luck, love! ★", odds stated as "1 in `{dateOptions.length}`"
+  (computed, not hardcoded), a `TKT ######` ticket number replacing
+  the old `No. ######` serial phrasing. The earlier "NEVER EXPIRES!"
+  banner line and its "heat death of the universe" payoff were
+  dropped — superseded by the jagged banner + "100%" prize ribbon as
+  the card's bold claim.
+- **Deliberate deviation from the mockup**: its "scratched" screenshot
+  showed each row's full title, description, and a "WIN!" badge
+  inline. Built that way, scratching a row would spoil both the
+  `/date/:id` reveal page and the "must scratch in order" No Bueno
+  surprise — both established features the mockup wasn't built with
+  visibility into. Rows still only ever show the icon + vague teaser,
+  exactly as before this pass; tapping still navigates to `/date/:id`
+  for the actual reveal.
+- `src/assets/scratch-cat-icon.png` (the foil watermark) is no longer
+  imported anywhere — the new row's foil has no watermark image, just
+  the grain/streak texture + "★ Scratch here ★" label. Left the file
+  in place rather than deleting a personal-photo asset as a side
+  effect of a CSS change; revisit if it's confirmed genuinely unwanted.
+
 **Overflow/clipping gotcha:** `.ticket` and `.reveal-card` are both
 `overflow: visible` so the mascot/seal badges can burst past their
 corners. Any child that needs to be clipped to the card's rounded
@@ -546,11 +611,15 @@ gradient layers to look right, prefer redesigning it around a simpler,
 well-established CSS pattern over debugging the complex one further.
 The complexity was the bug.
 
-**Rotation still lives on a wrapper, not on `.scratch-panel` itself**
-(`.scratch-panel-slot` in the grid, `.scratch-panel` inside it) — that
-separation predates the single-gradient fix and is unrelated to it,
-but there's no strong reason to collapse them back into one element
-either.
+**Historical note — class names above (`.scratch-panel*`,
+`.scratch-panel-slot`) are from before the row-layout pass** (see
+"Lotto reference board" above); the component is `.scratch-row*` now
+and has no rotation wrapper at all — rows aren't tilted, so there's
+nothing for the old GPU-rasterization seam bug (the reason rotation
+lived on a separate wrapper in the first place) to trigger on. The
+lesson and the single-gradient/`alternate` technique itself are
+unchanged; only the selector names and the now-unnecessary rotation
+wrapper are dated.
 
 Two small reusable decorative components live in `src/components/`:
 
@@ -566,10 +635,12 @@ Two small reusable decorative components live in `src/components/`:
   `aria-hidden` because the state it echoes is always stated in real
   text elsewhere on the page — it's flavor, not the source of truth.
 
-Each scratch tab's foil face also shows a small icon watermark —
-`src/assets/scratch-cat-icon.png` (cropped from a personal
-Bitmoji-with-cat image) sits above the "★ SCRATCH ★" label, styled via
-`.scratch-panel__watermark` in `ScratchPanel.tsx`. This mirrors how
+**Historical:** each scratch tab's foil face used to also show a small
+icon watermark — `src/assets/scratch-cat-icon.png` (cropped from a
+personal Bitmoji-with-cat image) sat above the "★ SCRATCH ★" label,
+styled via `.scratch-panel__watermark`. Dropped in the row-layout pass
+(narrower rows didn't have room for it); the file's still in
+`src/assets/` unused, in case it comes back. This mirrored how
 real scratch tickets print a mascot/symbol under the scratch coating,
 not just plain foil. Swap the image file to change it; no CSS/markup
 changes needed as long as the replacement is roughly square.

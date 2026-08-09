@@ -3,6 +3,7 @@ import ScratchPanel from "../components/ScratchPanel";
 import MascotSticker from "../components/MascotSticker";
 import StampSeal from "../components/StampSeal";
 import ArcText from "../components/ArcText";
+import Ribbon from "../components/Ribbon";
 
 interface HomeProps {
   /** ids already visited via /date/:id this session — shown pre-scratched. */
@@ -10,23 +11,26 @@ interface HomeProps {
 }
 
 /**
- * The main sheet: a grid of scratch-off tabs, one per date option.
+ * The main sheet: a vertical stack of horizontal "chance" rows, one
+ * per date option.
  *
- * Structure deliberately mirrors /ticket-study
- * (src/pages/TicketStudy.tsx) piece for piece — corner price tag,
- * corner badge, arced two-tone headline, kicker, big arced
- * declaration, bordered play area, bold banner line, fine print +
- * serial footer — rather than the app's own earlier layout (banner
- * strip, perforation, venue fine print) reskinned in the new colors.
- * See docs/SPEC.md "Lotto reference board" for why.
+ * Structure/copy is a direct build-out of a design pass another agent
+ * mocked up (ribbon banners, a jagged "BIG DATES! BIG MEMORIES!"
+ * banner, colored numbered chance rows, a barcode, odds fine print) —
+ * see docs/SPEC.md "Lotto reference board" for how it maps onto the
+ * app's existing content model. Notably: the mockup's "revealed" state
+ * showed each row's full title/description/WIN badge inline, but that
+ * would spoil the /date/:id reveal page and the "must scratch in
+ * order" No Bueno surprise (both established features) — so rows
+ * here still only ever show the vague teaser + icon, never the title/
+ * description. Scratching still navigates to /date/:id for the real
+ * reveal, unchanged from before this pass.
  */
 export default function Home({ revealedIds }: HomeProps) {
   return (
     <main className="ticket-page">
       <div className="ticket">
-        <span className="ticket__price" aria-hidden="true">
-          FREE
-        </span>
+        <StampSeal text="$0.69" tone="accent" className="ticket__free-badge" />
         <MascotSticker
           size="sm"
           caption="Personally guaranteed"
@@ -34,39 +38,37 @@ export default function Home({ revealedIds }: HomeProps) {
         />
 
         <header className="ticket__header">
-          <span className="ticket__star ticket__header-star ticket__header-star--1" aria-hidden="true" />
-          <span className="ticket__star ticket__header-star ticket__header-star--2" aria-hidden="true" />
-          <h1 className="ticket__title">
-            <ArcText text="SECRET DATE" maxDeg={14} radius={18} />
-          </h1>
-          <h1 className="ticket__title ticket__title--cream">
-            <ArcText text="BLOWOUT" maxDeg={16} radius={20} />
-          </h1>
-          <p className="ticket__kicker">Scratch one off to</p>
-          <p className="ticket__declare">
-            <ArcText text="WIN A DATE!" maxDeg={12} radius={16} />
-          </p>
+          <div className="ticket__headline-top">
+            <span className="ticket__star ticket__header-star ticket__header-star--1" aria-hidden="true" />
+            <Ribbon className="ticket__ribbon--sm ticket__ribbon--tilt-left">Secret</Ribbon>
+          </div>
+          <div className="ticket__headline">
+            <h1 className="ticket__title ticket__title--cream">
+              <ArcText text="DATE" maxDeg={10} radius={14} />
+            </h1>
+            <h1 className="ticket__title">
+              <ArcText text="BLOWOUT!" maxDeg={14} radius={18} />
+            </h1>
+          </div>
+          <div className="ticket__subhead">
+            <p className="ticket__kicker">
+              <span className="ticket__star ticket__kicker-star" aria-hidden="true" />
+              Scratch one off to
+            </p>
+            <Ribbon className="ticket__ribbon--lg ticket__ribbon--tilt-left">Win a date!</Ribbon>
+            <Ribbon className="ticket__ribbon--sm ticket__ribbon--gold ticket__ribbon--tilt-right ticket__ribbon--chances">
+              ★ {dateOptions.length} chances to win ★
+            </Ribbon>
+          </div>
         </header>
 
         <div className="ticket__playarea">
-          <StampSeal
-            text={
-              <>
-                {dateOptions.length} CHANCES
-                <br />
-                TO WIN!
-              </>
-            }
-            tone="accent"
-            className="ticket__playarea-badge"
-          />
           <div className="ticket__grid">
             {dateOptions.map((option, index) => (
               <ScratchPanel
                 key={option.id}
                 option={option}
                 piece={index + 1}
-                total={dateOptions.length}
                 revealed={revealedIds.has(option.id)}
               />
             ))}
@@ -79,16 +81,57 @@ export default function Home({ revealedIds }: HomeProps) {
           <span className="ticket__star" />
         </div>
 
-        <p className="ticket__banner-line">NEVER EXPIRES!</p>
+        <p className="ticket__jagged-banner">
+          Big dates! Big memories!
+          <br />
+          Maybe even <em>big love!?</em>
+        </p>
 
-        <footer className="ticket__footer">
-          <div className="ticket__footer-text">
-            <p>Not valid after the heat death of the universe.</p>
-            <p>Collecting all pieces is encouraged.</p>
+        <div className="ticket__prize-row">
+          <div className="ticket__prize-box">
+            <span className="ticket__prize-label">
+              Win
+              <br />
+              up to
+            </span>
+            <strong className="ticket__prize-figure">100%</strong>
+            <span className="ticket__prize-label">
+              Of an
+              <br />
+              awesome
+              <br />
+              date
+            </span>
           </div>
-          <span className="ticket__serial" aria-hidden="true">
-            No. 000427
-          </span>
+          <p className="ticket__no-purchase" aria-hidden="true">
+            No purchase necessary, just good luck!
+          </p>
+        </div>
+
+        <footer className="ticket__info-panel">
+          <div className="ticket__barcode" aria-hidden="true" />
+          <div className="ticket__footer-row">
+            <p className="ticket__footer-tag">★ Good luck, love! ★</p>
+            <span className="ticket__serial" aria-hidden="true">
+              TKT 000928
+            </span>
+          </div>
+          <p className="ticket__legal-line">
+            Not a real lottery ticket &bull; For entertainment only
+          </p>
+          <p className="ticket__fine-print">
+            Odds of winning an awesome date: 1 in {dateOptions.length}.
+            Prizes may include food, fun, adventure, laughs, and/or
+            memories that last. Void where prohibited (it isn&rsquo;t).
+          </p>
+          <span
+            className="ticket__star ticket__corner-star ticket__corner-star--left"
+            aria-hidden="true"
+          />
+          <span
+            className="ticket__star ticket__corner-star ticket__corner-star--right"
+            aria-hidden="true"
+          />
         </footer>
       </div>
     </main>

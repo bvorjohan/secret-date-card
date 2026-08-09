@@ -7,9 +7,9 @@ structure, or commands.
 ## What this is
 
 A mobile-first web app styled like a scratch-off lottery ticket / loyalty
-card. The root page shows a "ticket" of scratch-off panels; tapping one
-plays a reveal animation and navigates to a route that shows that specific
-date, "scratched off."
+card. The root page shows a "ticket" of scratch-off rows, one "chance"
+per date option; tapping one plays a reveal animation and navigates to
+a route that shows that specific date, "scratched off."
 
 Full behavior/data-model spec: [docs/SPEC.md](docs/SPEC.md). Read that
 before changing routing, the data model, or page states.
@@ -51,7 +51,8 @@ npm run lint      # oxlint
 ```
 src/
   data/dateOptions.ts   # the single source of truth for ticket content
-  components/            # ScratchPanel, MascotSticker, StampSeal, ArcText
+  components/            # ScratchPanel (a "chance" row, not a grid tile),
+                          # MascotSticker, StampSeal, ArcText
   pages/                 # Home, DateReveal, NotFound — one per route
   pages/TicketStudy.tsx + ticketStudy.css  # /ticket-study: standalone reference-fidelity
                           # exercise, deliberately not using index.css tokens — see
