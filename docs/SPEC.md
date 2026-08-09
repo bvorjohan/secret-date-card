@@ -137,13 +137,54 @@ looks like dead code:**
   currently no user-visible confirmation that the email fired; that's
   intentional (the recipient's inbox is the confirmation).
 
-**One-time manual setup step (not in code, can't be):** after the site
-is actually deployed on Netlify, someone has to go to *Site settings →
-Forms → Form notifications → Add notification → Email notification*
-and enter the destination address. Netlify Forms won't send anything
-until that's configured, no matter how correct the code above is. This
-repo has never been connected to a Netlify site as of this writing —
-see the deploy note in [CLAUDE.md](../CLAUDE.md).
+**One-time manual setup step (not in code, can't be):** in the Netlify
+dashboard, *Site settings → Forms → Form notifications → Add
+notification → Email notification*, enter the destination address.
+Netlify Forms won't send anything until that's configured, no matter
+how correct the code above is.
+
+Deployed at **https://secret-date-card.netlify.app/**. One gotcha hit
+during setup, worth knowing if form submissions ever mysteriously
+404 again: Netlify's *Post-processing → Form detection* setting has to
+be on for the build to scan the HTML and register the form at all —
+it was off by default for this site, so the very first deploy's form
+submissions failed (404) until it was enabled *and* a fresh deploy was
+triggered (enabling the setting doesn't retroactively reprocess an
+already-published deploy).
+
+## Share link preview
+
+Open Graph + Twitter Card meta tags live in
+[`index.html`](../index.html)'s `<head>` — this is what iMessage,
+Slack, Discord, etc. actually read to build a rich link-preview card
+when the URL is shared; the `<title>` tag alone isn't enough for any
+of them to show an image.
+
+- `og:image` points to `public/og-image.jpg` (1200×630, the standard
+  social-preview size) — a **dedicated share-card image**, not a
+  screenshot of the actual (tall, mobile-first) ticket page. It reuses
+  the site's real colors/fonts/mascot so it reads as the same brand,
+  laid out landscape specifically for how link previews render.
+- **How it was made** (so it can be regenerated if the branding
+  changes again): a standalone HTML file styled with the same CSS
+  custom properties as `src/index.css`, screenshotted at 2400×1260 via
+  Playwright (`deviceScaleFactor: 2`, for crisp text) and downscaled
+  to 1200×630. That intermediate HTML wasn't kept in the repo — it's
+  small enough to redo from scratch by copying the relevant tokens out
+  of `index.css` if the image ever needs updating; the PNG screenshot
+  was converted to JPEG (quality 88) since a mostly-photographic/
+  gradient image compresses far smaller as JPEG than PNG (~130KB vs
+  ~370KB) with no visible quality loss at this size.
+- `og:image` must be an **absolute** URL
+  (`https://secret-date-card.netlify.app/og-image.jpg`) — crawlers
+  fetch it directly and won't resolve a relative path against the
+  page. If the Netlify domain ever changes, this has to be updated by
+  hand; it's not derived from anything at build time.
+- No automated check confirms the preview actually renders correctly
+  in iMessage/etc. — that was eyeballed manually. If you change
+  `og-image.jpg` or the meta tags, a link-preview debugger (e.g.
+  Facebook's Sharing Debugger, or just texting the link to yourself)
+  is the only real way to verify it.
 
 ## Interaction: the scratch panel
 

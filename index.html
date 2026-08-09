@@ -11,6 +11,27 @@
       rel="stylesheet"
     />
     <title>Redeem a Date</title>
+    <meta name="description" content="Scratch one off to redeem a date with me." />
+
+    <!--
+      Open Graph + Twitter Card tags: this is what iMessage, Slack,
+      etc. actually read to build a link-preview card — the <title>
+      tag above is not enough on its own. og:image must be an absolute
+      URL (crawlers won't resolve a relative one against this page).
+      Image lives at public/og-image.jpg — see docs/SPEC.md "Share
+      link preview" for how it was made and how to regenerate it.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://secret-date-card.netlify.app/" />
+    <meta property="og:title" content="Secret Date Blowout" />
+    <meta property="og:description" content="Scratch one off to redeem a date with me." />
+    <meta property="og:image" content="https://secret-date-card.netlify.app/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Secret Date Blowout" />
+    <meta name="twitter:description" content="Scratch one off to redeem a date with me." />
+    <meta name="twitter:image" content="https://secret-date-card.netlify.app/og-image.jpg" />
   </head>
   <body>
     <div id="root"></div>
