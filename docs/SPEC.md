@@ -76,14 +76,35 @@ transition durations roughly in sync.
 
 ## Visual language
 
-Ticket and reveal card share a look: cream/gold ticket card, dashed
-"perforation" divider, notched edges on the main ticket (like a physical
-raffle ticket), deep red/gold accent colors. Un-scratched panels use a
-diagonal-stripe "foil" pattern with a looping shimmer sweep. All defined
-in [`src/index.css`](../src/index.css) — there's no CSS framework or
-component library, so new UI should extend the existing custom
-properties (`--color-*`, `--radius-*`) rather than introducing new
-patterns.
+Old-timey raffle-ticket / punchcard aesthetic: aged cream paper (with a
+subtle grain texture), a thin gold double-border, a dashed-and-dotted
+"perforation" divider, and notched stub edges on the main ticket. Two
+Google Fonts loaded in `index.html` carry the vintage feel — Playfair
+Display (`--font-display`) for headings, Special Elite (`--font-stamp`,
+a typewriter face) for eyebrows, fineprint, and small labels. Un-scratched
+panels use a diagonal-stripe "foil" pattern with a looping shimmer sweep.
+All defined in [`src/index.css`](../src/index.css) — there's no CSS
+framework or component library, so new UI should extend the existing
+custom properties (`--color-*`, `--radius-*`, `--font-*`) rather than
+introducing new patterns.
+
+Two small reusable decorative components live in `src/components/`:
+
+- **`MascotSticker`** — a circular "wax seal" badge built from
+  `src/assets/mascot-sticker.png` (a cropped personal photo/bitmoji).
+  Used small on the ticket (`size="sm"`) and larger on reveal pages
+  (`size="lg"`). Swap the picture by replacing that PNG with another
+  roughly-square image; no component changes needed.
+- **`StampSeal`** — a rotated ink-stamp badge (e.g. "Confirmed ✓",
+  "Pending", "Void") shown on reveal/not-found pages. It's
+  `aria-hidden` because the state it echoes is always stated in real
+  text elsewhere on the page — it's flavor, not the source of truth.
+
+Advertising/flavor copy (what the card is, in ticket-fineprint voice)
+lives inline in `Home.tsx` as `.ticket__fineprint` — short, uppercase,
+typewriter-styled, e.g. "Good for one (1) date · redeemable anytime, in
+person · no cash value." Edit that paragraph directly to change the
+pitch; it's plain JSX text, not pulled from the data file.
 
 ## Explicit non-goals (current phase)
 
@@ -105,3 +126,9 @@ patterns.
 - **Vite pinned to `^6`, oxlint pinned to `1.14.0`**: see
   [CLAUDE.md](../CLAUDE.md) — Node 20.16 on the dev machine predates
   what their latest majors require for native bindings.
+- **Old-timey raffle-ticket/punchcard look, not the original
+  purple/rounded style**: chosen to feel like a physical vintage
+  ticket rather than a generic app card. Playfair Display + Special
+  Elite loaded from Google Fonts (a real network request at runtime —
+  fine for a Netlify-hosted app; note it if this ever needs to work
+  fully offline).

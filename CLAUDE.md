@@ -45,10 +45,11 @@ npm run lint      # oxlint
 ```
 src/
   data/dateOptions.ts   # the single source of truth for ticket content
-  components/            # ScratchPanel (the tap-to-reveal panel)
+  components/            # ScratchPanel, MascotSticker, StampSeal
   pages/                 # Home, DateReveal, NotFound — one per route
+  assets/mascot-sticker.png  # personal photo/bitmoji used as a sticker badge
   App.tsx                # router config
-  index.css              # all styling (ticket + reveal card look)
+  index.css              # all styling (vintage ticket look, fonts, palette)
 ```
 
 ## Routes

@@ -1,5 +1,7 @@
 import { Link, Navigate, useParams } from "react-router-dom";
-import { getDateOption } from "../data/dateOptions";
+import { getDateOption, getSerialNumber } from "../data/dateOptions";
+import MascotSticker from "../components/MascotSticker";
+import StampSeal from "../components/StampSeal";
 
 /**
  * The reveal route: /date/:id
@@ -17,14 +19,24 @@ export default function DateReveal() {
     return <Navigate to="/not-found" replace />;
   }
 
+  const isReady = option.status === "ready";
+
   return (
     <main className="reveal-page">
       <div className="reveal-card">
+        <StampSeal
+          text={isReady ? "Confirmed ✓" : "Pending"}
+          tone={isReady ? "accent" : "muted"}
+          className="reveal-card__stamp"
+        />
+
+        <MascotSticker size="lg" className="reveal-card__mascot" />
+
         <span className="reveal-card__icon" aria-hidden="true">
           {option.icon}
         </span>
 
-        {option.status === "ready" ? (
+        {isReady ? (
           <>
             <p className="reveal-card__eyebrow">You scratched off</p>
             <h1 className="reveal-card__title">{option.title}</h1>
@@ -40,6 +52,10 @@ export default function DateReveal() {
             </p>
           </>
         )}
+
+        <p className="reveal-card__serial" aria-hidden="true">
+          {getSerialNumber(option.id)}
+        </p>
 
         <Link to="/" className="reveal-card__back">
           ← Back to the ticket

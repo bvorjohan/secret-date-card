@@ -1,22 +1,28 @@
 :root {
   color-scheme: light;
 
-  --color-bg: #1b1024;
-  --color-ticket: #fdf6e3;
-  --color-ticket-edge: #f1e2b8;
-  --color-ink: #2b1d3c;
-  --color-ink-muted: #6b5c7c;
-  --color-accent: #c8102e;
-  --color-accent-dark: #8f0b20;
-  --color-gold: #d4a017;
-  --color-gold-light: #f1c94a;
-  --color-foil: #9aa3ad;
-  --color-foil-dark: #6d757e;
+  /* Aged-paper / raffle-ticket palette */
+  --color-bg: #1c130c;
+  --color-bg-glow: #34211a;
+  --color-ticket: #f3e6c8;
+  --color-ticket-edge: #e6d19f;
+  --color-ink: #3a2818;
+  --color-ink-muted: #7a6a52;
+  --color-accent: #a3242f;
+  --color-accent-dark: #7a1520;
+  --color-gold: #a9781f;
+  --color-gold-light: #d4af37;
+  --color-foil: #9a9186;
+  --color-foil-dark: #6d675e;
 
-  --radius-lg: 24px;
-  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-md: 10px;
 
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-stamp: "Special Elite", "Courier New", monospace;
+  --font-body: Georgia, "Times New Roman", serif;
+
+  font-family: var(--font-body);
 }
 
 * {
@@ -31,7 +37,7 @@ body,
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top, #34203f 0%, var(--color-bg) 70%);
+  background: radial-gradient(circle at top, var(--color-bg-glow) 0%, var(--color-bg) 75%);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
 }
@@ -43,6 +49,20 @@ button {
 
 a {
   color: inherit;
+}
+
+/*
+ * Aged-paper grain. Composed with the cream gradient on .ticket and
+ * .reveal-card below rather than as a standalone class, since a
+ * background-image stack has to be declared alongside the gradient
+ * it layers over (CSS doesn't let two rules merge into one property).
+ */
+:root {
+  --paper-grain:
+    radial-gradient(rgba(58, 40, 24, 0.05) 1px, transparent 1px),
+    radial-gradient(rgba(58, 40, 24, 0.04) 1px, transparent 1px);
+  --paper-grain-size: 3px 3px, 7px 7px;
+  --paper-grain-position: 0 0, 2px 3px;
 }
 
 /* ---------- Ticket page (Home) ---------- */
@@ -58,12 +78,17 @@ a {
 .ticket {
   width: 100%;
   max-width: 420px;
-  background: linear-gradient(180deg, var(--color-ticket) 0%, var(--color-ticket-edge) 100%);
+  background-image: var(--paper-grain), linear-gradient(180deg, var(--color-ticket) 0%, var(--color-ticket-edge) 100%);
+  background-size: var(--paper-grain-size), 100% 100%;
+  background-position: var(--paper-grain-position), 0 0;
   border-radius: var(--radius-lg);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.05);
-  padding: 28px 20px 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  padding: 30px 20px 20px;
   position: relative;
   overflow: hidden;
+  border: 2px solid var(--color-gold);
+  outline: 1px dashed rgba(122, 21, 32, 0.55);
+  outline-offset: -8px;
 }
 
 .ticket::before,
@@ -76,6 +101,7 @@ a {
   background: var(--color-bg);
   border-radius: 50%;
   transform: translateY(-50%);
+  box-shadow: inset 0 0 0 2px rgba(169, 120, 31, 0.5);
 }
 
 .ticket::before {
@@ -86,38 +112,83 @@ a {
   right: -14px;
 }
 
+.ticket__corner {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  font-family: var(--font-stamp);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-muted);
+  z-index: 1;
+}
+
+.ticket__mascot {
+  position: absolute;
+  top: -6px;
+  right: 10px;
+  z-index: 1;
+}
+
 .ticket__header {
   text-align: center;
-  margin-bottom: 20px;
+  margin: 8px 0 14px;
 }
 
 .ticket__eyebrow {
-  margin: 0 0 4px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  margin: 0 0 6px;
+  font-family: var(--font-stamp);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-accent);
 }
 
 .ticket__title {
   margin: 0;
-  font-size: 1.9rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
   color: var(--color-ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .ticket__subtitle {
   margin: 6px 0 0;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  font-style: italic;
   color: var(--color-ink-muted);
 }
 
+.ticket__fineprint {
+  margin: 0 0 18px;
+  text-align: center;
+  font-family: var(--font-stamp);
+  font-size: 0.6rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+  line-height: 1.6;
+}
+
 .ticket__perforation {
-  height: 0;
-  border-top: 2px dashed rgba(107, 92, 124, 0.35);
+  height: 12px;
   margin: 0 -20px 20px;
+  background-image:
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent 3px,
+      rgba(122, 21, 32, 0.4) 3px,
+      rgba(122, 21, 32, 0.4) 9px,
+      transparent 9px,
+      transparent 12px
+    ),
+    radial-gradient(circle, var(--color-bg) 3px, transparent 3.5px);
+  background-repeat: repeat-x, repeat-x;
+  background-size: 12px 2px, 16px 12px;
+  background-position: center, center;
 }
 
 .ticket__grid {
@@ -133,7 +204,8 @@ a {
 
 .ticket__footer p {
   margin: 0;
-  font-size: 0.72rem;
+  font-family: var(--font-stamp);
+  font-size: 0.65rem;
   color: var(--color-ink-muted);
 }
 
@@ -149,6 +221,8 @@ a {
   overflow: hidden;
   background: var(--color-ink);
   -webkit-tap-highlight-color: transparent;
+  outline: 2px dashed rgba(212, 175, 55, 0.55);
+  outline-offset: -5px;
 }
 
 .scratch-panel__content {
@@ -170,9 +244,9 @@ a {
 }
 
 .scratch-panel__teaser {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: rgba(253, 246, 227, 0.85);
+  font-family: var(--font-stamp);
+  font-size: 0.68rem;
+  color: rgba(243, 230, 200, 0.85);
 }
 
 .scratch-panel__foil {
@@ -194,10 +268,10 @@ a {
 
 .scratch-panel__foil::after {
   content: "SCRATCH";
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.75);
+  font-family: var(--font-stamp);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  color: rgba(243, 230, 200, 0.8);
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
 
@@ -207,7 +281,7 @@ a {
   background: linear-gradient(
     115deg,
     transparent 20%,
-    rgba(255, 255, 255, 0.35) 45%,
+    rgba(255, 255, 255, 0.3) 45%,
     transparent 70%
   );
   background-size: 220% 220%;
@@ -254,6 +328,97 @@ a {
   }
 }
 
+/* ---------- Mascot sticker (wax-seal badge) ---------- */
+
+.mascot-sticker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transform: rotate(-8deg);
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
+}
+
+.mascot-sticker__ring {
+  display: block;
+  border-radius: 50%;
+  padding: 3px;
+  background: var(--color-ticket);
+  outline: 2px dashed var(--color-gold);
+  outline-offset: -3px;
+  box-shadow: 0 0 0 1px rgba(169, 120, 31, 0.4);
+}
+
+.mascot-sticker__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.mascot-sticker--sm .mascot-sticker__ring {
+  width: 58px;
+  height: 58px;
+}
+
+.mascot-sticker--lg .mascot-sticker__ring {
+  width: 96px;
+  height: 96px;
+}
+
+.mascot-sticker__caption {
+  font-family: var(--font-stamp);
+  font-size: 0.52rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+  text-align: center;
+  max-width: 78px;
+  line-height: 1.2;
+}
+
+/* ---------- Stamp seal ---------- */
+
+.stamp-seal {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 3px solid var(--color-accent);
+  outline: 1px solid var(--color-accent);
+  outline-offset: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transform: rotate(-14deg);
+  mix-blend-mode: multiply;
+  opacity: 0.82;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.stamp-seal span {
+  font-family: var(--font-stamp);
+  font-size: 0.72rem;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.stamp-seal--muted {
+  border-color: var(--color-ink-muted);
+  outline-color: var(--color-ink-muted);
+}
+
+.stamp-seal--muted span {
+  color: var(--color-ink-muted);
+}
+
 /* ---------- Reveal / NotFound pages ---------- */
 
 .reveal-page {
@@ -267,24 +432,37 @@ a {
 .reveal-card {
   width: 100%;
   max-width: 420px;
-  background: linear-gradient(180deg, var(--color-ticket) 0%, var(--color-ticket-edge) 100%);
+  background-image: var(--paper-grain), linear-gradient(180deg, var(--color-ticket) 0%, var(--color-ticket-edge) 100%);
+  background-size: var(--paper-grain-size), 100% 100%;
+  background-position: var(--paper-grain-position), 0 0;
   border-radius: var(--radius-lg);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.05);
-  padding: 40px 28px 32px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  padding: 44px 28px 32px;
   text-align: center;
   animation: pop-in 0.4s ease;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--color-gold);
+  outline: 1px dashed rgba(122, 21, 32, 0.55);
+  outline-offset: -8px;
+}
+
+.reveal-card__mascot {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 12px;
 }
 
 .reveal-card__icon {
   display: inline-block;
-  font-size: 2.6rem;
+  font-size: 2.4rem;
   margin-bottom: 8px;
 }
 
 .reveal-card__eyebrow {
   margin: 0 0 4px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-family: var(--font-stamp);
+  font-size: 0.7rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-accent);
@@ -292,22 +470,31 @@ a {
 
 .reveal-card__title {
   margin: 0 0 12px;
+  font-family: var(--font-display);
   font-size: 1.7rem;
-  font-weight: 800;
+  font-weight: 900;
   color: var(--color-ink);
 }
 
 .reveal-card__description {
-  margin: 0 0 24px;
+  margin: 0 0 20px;
   font-size: 0.96rem;
   line-height: 1.5;
   color: var(--color-ink-muted);
 }
 
+.reveal-card__serial {
+  margin: 0 0 20px;
+  font-family: var(--font-stamp);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-muted);
+}
+
 .reveal-card__back {
   display: inline-block;
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-family: var(--font-stamp);
+  font-size: 0.82rem;
   color: var(--color-accent-dark);
   text-decoration: none;
 }

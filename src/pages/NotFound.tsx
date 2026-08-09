@@ -1,10 +1,13 @@
 import { Link } from "react-router-dom";
+import StampSeal from "../components/StampSeal";
 
 /** Shown for any /date/:id that doesn't match a known option, or any other unknown route. */
 export default function NotFound() {
   return (
     <main className="reveal-page">
       <div className="reveal-card">
+        <StampSeal text="Void" tone="muted" className="reveal-card__stamp" />
+
         <span className="reveal-card__icon" aria-hidden="true">
           🎫
         </span>

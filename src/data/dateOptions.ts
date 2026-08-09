@@ -72,3 +72,15 @@ export const dateOptions: DateOption[] = [
 export function getDateOption(id: string): DateOption | undefined {
   return dateOptions.find((option) => option.id === id);
 }
+
+/**
+ * A stable, purely-decorative "ticket serial number" for an option,
+ * e.g. "No. 000003". Derived from its position in the array, so it
+ * shifts if you reorder dateOptions — that's fine, it's flavor text,
+ * not an identifier (id is the identifier).
+ */
+export function getSerialNumber(id: string): string {
+  const index = dateOptions.findIndex((option) => option.id === id);
+  const n = index === -1 ? 0 : index + 1;
+  return `No. ${String(n).padStart(6, "0")}`;
+}
