@@ -441,6 +441,48 @@ reference structure wants filled.
 treatment but kept its own layout (it has no `/ticket-study`
 equivalent — it's a confirmation page, not a promo ticket).
 
+**Critique pass against the DO/DON'T list, on Home specifically.**
+After the port above, structural fidelity to `/ticket-study` was
+close, but a direct re-check against the reference board's DO/DON'T
+list and "Real World Examples"/"Layout & Composition Feel" strips (not
+just the one Ticket Anatomy example) turned up gaps the port hadn't
+caught:
+
+- **No seal/callout badge on Home at all.** The port gave the
+  starburst-badge corner to the mascot and never replaced it with
+  anything — but 3 of 5 real examples on the board carry an explicit
+  "X CHANCES TO WIN" / "WIN UP TO X TIMES" callout (DO: "multiple
+  borders & frames"; motif "bursts"). Fixed by adding a second
+  `StampSeal` badge — **"`{dateOptions.length}` CHANCES / TO WIN"**,
+  computed from the actual panel count, not hardcoded — hung off
+  `.ticket__playarea`'s top-right corner (`.ticket__playarea-badge` in
+  index.css) instead of the card's own corner, which the mascot
+  already owns. Confirmed this is the reference's own copy pattern
+  (Fast Cash: "8 CHANCES TO WIN!"), not an invented style.
+- **No scattered star ornaments.** `/ticket-study` had 5; none made it
+  into Home. DO: motif "stars ... dots." Added `.ticket__star` (same
+  five-point `clip-path` proven in `ticketStudy.css`) in two spots:
+  flanking the headline inside `.ticket__header` (absolute-positioned,
+  `.ticket__header-star`), and a plain in-flow `.ticket__stars-row`
+  divider between the play area and the "NEVER EXPIRES!" banner line.
+  The stars-row is normal flow, not fixed-pixel absolute positioning,
+  on purpose — the play area's height (and therefore where the gap
+  after it actually falls) depends on content, so absolute coordinates
+  against `.ticket` would drift.
+- **Corners read closer to a rounded web card than cut cardstock.**
+  `.ticket` was `border-radius: var(--radius-lg)` (14px),
+  `.ticket__playarea` was 10px — real tickets are near-sharp
+  rectangles (DON'T: "overly rounded components," "generic web UI
+  patterns"). Added `--radius-sm: 6px` and applied it to both,
+  deliberately *not* by changing `--radius-lg` itself (that would also
+  soften `.reveal-card`, out of scope for this pass) and *not* touching
+  `.scratch-panel`'s own radius (already modest at 8px).
+- Checked copy against the board's actual examples before touching
+  any of it: the "Real World Examples" cards use very little body
+  text (title + price + one "WIN UP TO X" line + the numbers grid) —
+  density there comes from graphics, not verbosity. So the fix was
+  the one missing callout badge above, not padding out the fine print.
+
 **Overflow/clipping gotcha:** `.ticket` and `.reveal-card` are both
 `overflow: visible` so the mascot/seal badges can burst past their
 corners. Any child that needs to be clipped to the card's rounded

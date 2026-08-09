@@ -27,6 +27,11 @@
 
   --radius-lg: 14px;
   --radius-md: 8px;
+  /* Sharp-cornered-cardstock radius — used on .ticket and
+     .ticket__playarea instead of --radius-lg, which read closer to a
+     rounded "web card" than cut printed cardstock. See docs/SPEC.md
+     "Lotto reference board" (critique pass) for why. */
+  --radius-sm: 6px;
 
   --font-display: "Luckiest Guy", "Arial Black", sans-serif;
   /* Bold condensed sans for badges/kickers/serial numbers — the
@@ -113,7 +118,7 @@ a {
   width: 100%;
   max-width: 420px;
   background: var(--ticket-bg);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-sm);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.05);
   padding: 30px 18px 20px;
   position: relative;
@@ -160,12 +165,83 @@ a {
 }
 
 .ticket__header {
+  position: relative; /* positioning context for .ticket__header-star */
   text-align: center;
   margin: 20px 0 0;
   /* Small left clearance for the price tag, larger right clearance
      for the mascot sticker — asymmetric because the two badges are
      very different sizes, unlike /ticket-study's roughly-matched pair. */
   padding: 0 104px 0 24px;
+}
+
+/*
+ * Scattered gold stars — a repeating motif nearly every real ticket
+ * uses to break up open background, that the reference board calls
+ * out explicitly ("stars, rays, dots, bursts") and that Home had none
+ * of before this pass (it only lived in /ticket-study). Same
+ * five-point clip-path proven there. Two placements: a couple flank
+ * the headline (absolute, in .ticket__header's own left gutter — see
+ * .ticket__header-star), and a few more sit in the gap between the
+ * play area and the banner line as a plain in-flow row (see
+ * .ticket__stars-row) rather than fragile fixed-pixel absolute
+ * coordinates, since that gap's position shifts with content height.
+ */
+.ticket__star {
+  display: inline-block;
+  clip-path: polygon(
+    50% 0%,
+    61.2% 34.6%,
+    97.6% 34.5%,
+    68.1% 55.9%,
+    79.4% 90.5%,
+    50% 69%,
+    20.6% 90.5%,
+    31.9% 55.9%,
+    2.4% 34.5%,
+    38.8% 34.6%
+  );
+  background: linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-gold) 100%);
+  filter: drop-shadow(1px 1px 0 var(--color-ink));
+}
+
+.ticket__header-star {
+  position: absolute;
+  z-index: 1;
+}
+
+.ticket__header-star--1 {
+  top: 4px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  transform: rotate(-12deg);
+}
+
+.ticket__header-star--2 {
+  bottom: 4px;
+  left: 8px;
+  width: 12px;
+  height: 12px;
+  transform: rotate(10deg);
+  opacity: 0.85;
+}
+
+.ticket__stars-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin: 14px 0 0;
+}
+
+.ticket__stars-row .ticket__star {
+  width: 13px;
+  height: 13px;
+}
+
+.ticket__stars-row .ticket__star--big {
+  width: 19px;
+  height: 19px;
 }
 
 /* Per-letter arc wrapper — see src/components/ArcText.tsx. Forced
@@ -248,15 +324,45 @@ a {
  * to read as "a frame," not compete with them for that texture.
  */
 .ticket__playarea {
+  position: relative; /* positioning context for .ticket__playarea-badge */
   margin: 12px -4px 4px;
   padding: 14px 10px 10px;
   border: 3px solid var(--color-ink);
   outline: 2px solid var(--color-gold);
   outline-offset: -6px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background-color: rgba(0, 0, 0, 0.16);
   background-image: var(--halftone);
   background-size: var(--halftone-size);
+}
+
+/*
+ * "N CHANCES TO WIN" badge — reuses .stamp-seal's shape/shadow, hung
+ * off the play area's top-right corner rather than the card's own
+ * corner (already spoken for by the mascot). Real tickets often float
+ * a second badge at the play area's shoulder, not just the card's top
+ * corner — this also doubles as the thing that breaks up the empty
+ * gap between the headline and the play area. See docs/SPEC.md
+ * "Lotto reference board" (critique pass).
+ */
+.ticket__playarea-badge {
+  position: absolute;
+  top: -34px;
+  right: -10px;
+  z-index: 4;
+}
+
+/* Compound selector (not just .ticket__playarea-badge) so this wins
+   over .stamp-seal's own width/height regardless of declaration
+   order — two classes outrank one at equal specificity either way. */
+.stamp-seal.ticket__playarea-badge {
+  width: 86px;
+  height: 86px;
+}
+
+.ticket__playarea-badge .stamp-seal__text {
+  font-size: 0.62rem;
+  padding: 0 8px;
 }
 
 .ticket__grid {
@@ -271,7 +377,7 @@ a {
    The joke it sets up ("Not valid after the heat death of the
    universe.") pays off two lines down, in the fine print. */
 .ticket__banner-line {
-  margin: 14px 0 0;
+  margin: 10px 0 0;
   text-align: center;
   font-family: var(--font-condensed);
   font-size: clamp(1.15rem, 6.5vw, 1.55rem);

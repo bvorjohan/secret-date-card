@@ -1,6 +1,7 @@
 import { dateOptions } from "../data/dateOptions";
 import ScratchPanel from "../components/ScratchPanel";
 import MascotSticker from "../components/MascotSticker";
+import StampSeal from "../components/StampSeal";
 import ArcText from "../components/ArcText";
 
 interface HomeProps {
@@ -33,6 +34,8 @@ export default function Home({ revealedIds }: HomeProps) {
         />
 
         <header className="ticket__header">
+          <span className="ticket__star ticket__header-star ticket__header-star--1" aria-hidden="true" />
+          <span className="ticket__star ticket__header-star ticket__header-star--2" aria-hidden="true" />
           <h1 className="ticket__title">
             <ArcText text="SECRET DATE" maxDeg={14} radius={18} />
           </h1>
@@ -46,6 +49,17 @@ export default function Home({ revealedIds }: HomeProps) {
         </header>
 
         <div className="ticket__playarea">
+          <StampSeal
+            text={
+              <>
+                {dateOptions.length} CHANCES
+                <br />
+                TO WIN!
+              </>
+            }
+            tone="accent"
+            className="ticket__playarea-badge"
+          />
           <div className="ticket__grid">
             {dateOptions.map((option, index) => (
               <ScratchPanel
@@ -57,6 +71,12 @@ export default function Home({ revealedIds }: HomeProps) {
               />
             ))}
           </div>
+        </div>
+
+        <div className="ticket__stars-row" aria-hidden="true">
+          <span className="ticket__star" />
+          <span className="ticket__star ticket__star--big" />
+          <span className="ticket__star" />
         </div>
 
         <p className="ticket__banner-line">NEVER EXPIRES!</p>
