@@ -169,9 +169,14 @@ a {
 }
 
 .ticket__free-badge .stamp-seal__text {
-  font-size: 0.85rem;
+  font-size: 1.2rem;
   color: var(--color-red-dark);
   padding: 0;
+  /* .stamp-seal__text's base rule counter-rotates the badge's own
+     tilt so text reads level — override that here so the price text
+     keeps a jaunty tilt of its own instead of reading perfectly
+     level, like it was stamped on at a playful angle. */
+  transform: rotate(350deg);
 }
 
 .ticket__mascot {
@@ -646,10 +651,19 @@ a {
  */
 .ticket__info-panel {
   position: relative;
-  margin: 8px -18px -20px;
-  padding: 8px 18px 10px;
+  /* Modest bleed, NOT a full cancel-the-padding bleed — .ticket's gold
+     outline (outline-offset: -10px) sits ~8-11px inside the ticket's
+     outer edge, well inside the 18px/20px padding band. Bleeding all
+     the way to the padding edge (the previous version) put this
+     panel's cream background flush against the black border with zero
+     buffer before the gold line, reading as escaping the frame even
+     though the outline still paints on top of it. Same modest-bleed
+     amount as .ticket__playarea, so it stays clearly inside the gold
+     line like everything else on the card. */
+  margin: 8px -4px -4px;
+  padding: 8px 14px 10px;
   background: var(--color-ticket);
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  border-radius: var(--radius-sm);
   text-align: center;
 }
 
@@ -863,8 +877,21 @@ a {
   color: var(--color-red-dark);
 }
 
+/*
+ * A <button> now (the secret reset — see Home.tsx), not a plain span,
+ * so it needs its own appearance/background/cursor reset: the shared
+ * base `button` rule (top of this file) only resets font/color, not
+ * the browser's default button chrome, and every other button on this
+ * card (.scratch-row, .reveal-card__back) already sets its own
+ * background explicitly rather than relying on a global reset — same
+ * convention here.
+ */
 .ticket__serial {
   flex-shrink: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
+  cursor: pointer;
   padding: 2px 8px;
   border: 2px solid var(--color-ink);
   border-radius: 4px;
@@ -1021,6 +1048,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
   background: linear-gradient(
     100deg,
     #8b8f95 0%,
@@ -1075,13 +1103,36 @@ a {
   pointer-events: none;
 }
 
-.scratch-row__foil-label {
+/*
+ * Brought back from before the row-layout pass — see docs/SPEC.md
+ * "Historical: each scratch tab's foil face used to also show a small
+ * icon watermark." Same asset (src/assets/scratch-cat-icon.png). Now
+ * the foil's only content — the old "★ Scratch here ★" text label
+ * was dropped in favor of just a bigger icon carrying that meaning on
+ * its own (no .scratch-row__foil-label anymore). Sized to fill most
+ * of the row's ~74px height rather than sit as a small corner
+ * accent. Opacity bumped up from the old "small watermark under a
+ * label" muting, since it's the sole visual now and needs to read
+ * clearly at this size.
+ */
+.scratch-row__watermark {
+  position: relative;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  opacity: 0.7;
+}
+
+/* "Scratch" / "Here", flanking the cat instead of stacked below it —
+   fills the row's width better than a lone centered icon did. */
+.scratch-row__foil-word {
   position: relative;
   font-family: var(--font-display);
-  font-size: 0.62rem;
-  letter-spacing: 0.03em;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
   color: var(--color-ink);
-  opacity: 0.65;
+  opacity: 0.6;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 

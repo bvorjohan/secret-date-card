@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import type { DateOption } from "../data/dateOptions";
+import scratchCatIcon from "../assets/scratch-cat-icon.png";
 
 /** How long the reveal animation plays before we navigate to the route. */
 const REVEAL_DELAY_MS = 550;
@@ -23,10 +24,9 @@ interface ScratchPanelProps {
  * reference board" for the mockup this followed): a colored numbered
  * tab on the left (`.scratch-row__tab`, color cycles per row via
  * nth-child in index.css), then the scratch foil/content filling the
- * rest of the row. Deliberately still shows only the vague teaser +
- * icon once scratched, never the real title/description — see
- * Home.tsx's comment for why (spoiler: it'd defeat the reveal-page
- * surprise and the "must scratch in order" No Bueno flavor).
+ * rest of the row. Unscratched, the foil shows "Scratch" / the cat
+ * watermark / "Here" side by side, filling the row's width instead of
+ * a single centered icon with empty space on either side.
  *
  * If `revealed` is already true (this id was visited earlier this
  * session — see App.tsx's revealedIds), the row renders straight into
@@ -70,7 +70,7 @@ export default function ScratchPanel({
       className={`scratch-row${showScratched ? " is-revealing" : ""}`}
       onClick={handleTap}
       aria-label={
-        revealed ? `View: ${option.teaser}` : `Scratch off: ${option.teaser}`
+        revealed ? `View: ${option.title}` : `Scratch off: ${option.title}`
       }
     >
       <span className="scratch-row__tab" aria-hidden="true">
@@ -81,13 +81,16 @@ export default function ScratchPanel({
       <span className="scratch-row__body">
         <span className="scratch-row__foil" aria-hidden="true">
           <span className="scratch-row__grain" />
-          <span className="scratch-row__foil-label">★ Scratch here ★</span>
+          <span className="scratch-row__foil-word">Scratch</span>
+          <img
+            src={scratchCatIcon}
+            alt=""
+            className="scratch-row__watermark"
+          />
+          <span className="scratch-row__foil-word">Here</span>
         </span>
         <span className="scratch-row__content">
-          <span className="scratch-row__icon" aria-hidden="true">
-            {option.icon}
-          </span>
-          <span className="scratch-row__teaser">{option.teaser}</span>
+          <span className="scratch-row__teaser">{option.title}</span>
         </span>
       </span>
     </button>

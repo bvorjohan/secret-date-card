@@ -1,3 +1,5 @@
+import martini from "../assets/espresso-martini.png";
+
 /**
  * The list of scratch-off slots on the main ticket, in display order.
  *
@@ -8,10 +10,6 @@
 export interface DateOption {
   /** URL-safe id, used as the /date/:id route param. Must be unique. */
   id: string;
-  /** Short teaser shown on the un-scratched panel (kept vague on purpose). */
-  teaser: string;
-  /** Emoji shown on the un-scratched panel. */
-  icon: string;
   /**
    * "ready"   -> has full content below; reveal page shows it.
    * "pending" -> content not decided yet; reveal page shows the
@@ -22,49 +20,47 @@ export interface DateOption {
   title?: string;
   /** Required when status is "ready". Shown on the reveal page. */
   description?: string;
+  /**
+   * Optional per-event override for the confirmation page's sticker
+   * (see src/components/MascotSticker.tsx). Falls back to the default
+   * mascot-sticker.png when omitted. To use one, `import` a roughly-
+   * square image from "../assets/" at the top of this file (same
+   * pattern as MascotSticker's own default import) and set this to
+   * that import, e.g.:
+   *   import pizzaSticker from "../assets/pizza-sticker.png";
+   *   ...
+   *   { id: "cook-together", ..., sticker: pizzaSticker }
+   */
+  sticker?: string;
 }
 
 export const dateOptions: DateOption[] = [
   {
-    id: "coffee-crawl",
-    teaser: "A cozy one",
-    icon: "☕",
+    id: "chihuly-night",
     status: "ready",
-    title: "Coffee & Bookstore Crawl",
+    title: "Chihuly Evening",
     description:
-      "We hop between two or three local coffee shops, and browse the bookstore in between. Low key, high comfort.",
+      "Grappa or Tolouse, then meandering among the glass as the sun goes down, perhaps a drink afterwards.",
+    sticker: martini
   },
   {
-    id: "sunset-picnic",
-    teaser: "Golden hour",
-    icon: "🧺",
-    status: "ready",
-    title: "Sunset Picnic",
-    description:
-      "Blanket, snacks, and a good view of the sky doing its thing. I'll handle the snacks.",
+    id: "err-1",
+    status: "pending",
   },
   {
     id: "mystery-drive",
-    teaser: "??? miles away",
-    icon: "🗺️",
     status: "pending",
   },
   {
     id: "game-night",
-    teaser: "Winner picks next date",
-    icon: "🎲",
     status: "pending",
   },
   {
     id: "cook-together",
-    teaser: "Two cooks, one kitchen",
-    icon: "🍳",
     status: "pending",
   },
   {
     id: "stargazing",
-    teaser: "Bring a jacket",
-    icon: "✨",
     status: "pending",
   },
 ];

@@ -82,15 +82,18 @@ way and a context would be pure ceremony.
   navigates immediately instead of replaying the reveal animation —
   there's nothing left to reveal.
 
-**This is deliberately in-memory only.** It survives client-side
-navigation (this is an SPA; routing between `/` and `/date/:id` never
-unmounts `App`), but a hard page reload resets `revealedIds` to empty
-and every tab looks unscratched again, even for dates you'd already
-seen. That's an accepted, discussed tradeoff for a no-backend project,
-not a bug — see the non-goals below. If that gap ever needs closing,
-the fix is persisting `revealedIds` to `localStorage` (read on init,
-write on every `markRevealed`), which is a small change *given this
-structure* — but don't add it speculatively; it wasn't asked for.
+**Persisted to `localStorage`** under the key
+`secret-date-card:revealedIds` (a JSON array of ids) — read once on
+init via a lazy `useState` initializer, written on every change via a
+`useEffect` keyed on `revealedIds`. Both the read and the write are
+wrapped in `try/catch`: private browsing, storage disabled, or corrupt
+JSON all just fall back to "nothing remembered" rather than throwing —
+this is a cosmetic convenience, not something worth crashing the app
+over. (Previously in-memory only — survived client-side navigation
+within the SPA but reset on a hard page reload; changed by request.)
+Only `status: "ready"` ids ever land in `revealedIds` at all (see
+`markRevealed` in `App.tsx`), so this persistence never makes a
+`pending` slot look permanently used up.
 
 ## Scratch notification email
 
@@ -164,12 +167,14 @@ of them to show an image.
 - `og:image` points to `public/og-image.jpg` (1200×630, the standard
   social-preview size) — a **dedicated share-card image**, not a
   screenshot of the actual (tall, mobile-first) ticket page. Currently:
-  a dark, starry "secret at night" design built around
-  `src/assets/shhhh.png` (a personal Bitmoji, shushing) with the
-  headline "Secret Date Nite?" — a deliberately different mood from
-  the rest of the site's bright lottery-ticket look, by request ("I
-  would like to do something custom"). `og:title` / `twitter:title`
-  match the image's own headline text.
+  the same red/gold sunburst lottery-ticket look as the rest of the
+  site (was a dark, starry "secret at night" design the first time
+  this was built — re-themed by request to match once the ticket's
+  own look had settled), still built around `src/assets/shhhh.png` (a
+  personal Bitmoji, shushing — kept as the baseline visual across both
+  versions) with the headline "Win a Secret Date Nite?". `og:title` /
+  `twitter:title` match the image's own headline text. Deliberately
+  doesn't show the site's own domain/name anywhere on the card.
 - `src/assets/shhhh.png` **is kept in the repo despite not being
   imported by any component** — it's the source crop used to generate
   `og-image.jpg`, kept so the card can be regenerated without
@@ -178,24 +183,34 @@ of them to show an image.
   one yet — see below) before assuming that.
 - **How the image was made** (so it can be regenerated if this changes
   again): a standalone HTML file, styled with the same CSS custom
-  properties as `src/index.css`, laying out `shhhh.png` and the
-  headline; screenshotted at 2400×1260 via Playwright
-  (`deviceScaleFactor: 2`, for crisp text) and downscaled to 1200×630.
-  That intermediate HTML wasn't kept in the repo (only the source
-  image was) — it's small enough to redo from scratch by copying the
-  relevant tokens out of `index.css`. The PNG screenshot was converted
-  to JPEG (quality 88) since a mostly-dark/gradient image compresses
-  far smaller as JPEG than PNG (~70KB vs several hundred KB) with no
-  visible quality loss at this size. There is no build-time script for
-  this — it's a manual, occasional regeneration, not CI'd.
+  properties/fonts as `src/index.css` (the `--ticket-bg` sunburst
+  gradient, the five-point `.ticket__star` clip-path, "Luckiest Guy"
+  headline treatment — gold fill, thick black `-webkit-text-stroke`,
+  offset red drop-shadow), laying out `shhhh.png` and the headline at
+  fixed 1200×630 pixel dimensions (this card doesn't need to be
+  responsive, so no viewport-relative units); screenshotted directly
+  to JPEG (quality 88) via Playwright at that same 1200×630 viewport —
+  no downscale step needed since `page.screenshot()` can emit JPEG
+  directly at the target size. That intermediate HTML wasn't kept in
+  the repo (only the source image was) — it's small enough to redo
+  from scratch by copying the relevant tokens out of `index.css`.
+  There is no build-time script for this — it's a manual, occasional
+  regeneration, not CI'd. Watch the mascot image's own size/position:
+  `shhhh.png` already has a "SHHHHH…" speech-bubble baked into the
+  image itself (to the right of the figure) — sizing the mascot too
+  large, or adding a *second*, separately-styled "Shhhh" text on top,
+  makes the two collide/overlap. Also keep the mascot narrow enough
+  (or the headline column's `width` capped enough) that the headline
+  text doesn't run underneath it — caught via an actual screenshot
+  during this rebuild, not assumed.
 - `og:image` must be an **absolute** URL
   (`https://secret-date-card.netlify.app/og-image.jpg`) — crawlers
   fetch it directly and won't resolve a relative path against the
   page. If the Netlify domain ever changes, this has to be updated by
   hand; it's not derived from anything at build time.
-- **The share-card title ("Secret Date Nite?") intentionally differs
-  from the actual page headline ("Secret Date Blowout" on the ticket
-  itself — see "Visual language" below).** This is a deliberate
+- **The share-card title ("Win a Secret Date Nite?") intentionally
+  differs from the actual page headline ("Secret Date Blowout" on the
+  ticket itself — see "Visual language" below).** This is a deliberate
   teaser/reveal split, not copy drifting out of sync: what shows in
   the text message is a different hook from what shows once you
   actually open the link. Don't "fix" this by making them match unless
@@ -542,11 +557,10 @@ of horizontal ticket-stub rows:
   visibility into. Rows still only ever show the icon + vague teaser,
   exactly as before this pass; tapping still navigates to `/date/:id`
   for the actual reveal.
-- `src/assets/scratch-cat-icon.png` (the foil watermark) is no longer
-  imported anywhere — the new row's foil has no watermark image, just
-  the grain/streak texture + "★ Scratch here ★" label. Left the file
-  in place rather than deleting a personal-photo asset as a side
-  effect of a CSS change; revisit if it's confirmed genuinely unwanted.
+- `src/assets/scratch-cat-icon.png` (the foil watermark) was briefly
+  dropped from the row's foil in this pass (no room in the narrower
+  row), then restored shortly after — see further down for the
+  current, in-use styling (`.scratch-row__watermark`).
 
 **Overflow/clipping gotcha:** `.ticket` and `.reveal-card` are both
 `overflow: visible` so the mascot/seal badges can burst past their
@@ -635,15 +649,14 @@ Two small reusable decorative components live in `src/components/`:
   `aria-hidden` because the state it echoes is always stated in real
   text elsewhere on the page — it's flavor, not the source of truth.
 
-**Historical:** each scratch tab's foil face used to also show a small
-icon watermark — `src/assets/scratch-cat-icon.png` (cropped from a
-personal Bitmoji-with-cat image) sat above the "★ SCRATCH ★" label,
-styled via `.scratch-panel__watermark`. Dropped in the row-layout pass
-(narrower rows didn't have room for it); the file's still in
-`src/assets/` unused, in case it comes back. This mirrored how
-real scratch tickets print a mascot/symbol under the scratch coating,
-not just plain foil. Swap the image file to change it; no CSS/markup
-changes needed as long as the replacement is roughly square.
+Each scratch row's foil face shows a small icon watermark —
+`src/assets/scratch-cat-icon.png` (cropped from a personal
+Bitmoji-with-cat image), styled via `.scratch-row__watermark`, sits
+above the "★ Scratch here ★" label. This mirrors how real scratch
+tickets print a mascot/symbol under the scratch coating, not just
+plain foil. Swap the image file to change it; no CSS/markup changes
+needed as long as the replacement is roughly square. (Briefly dropped
+during the row-layout pass for space, then restored.)
 
 The `pending`-status "No Bueno" fallback on `DateReveal` shows
 `src/assets/no-bueno.png` (a personal Bitmoji sticker with "NO BUENO."
@@ -671,11 +684,11 @@ stylistic at the same time.
 
 ## Explicit non-goals (current phase)
 
-- No backend/persistence — content is static, baked into the JS bundle
-  at build time. Editing a date after deploy means editing the data
-  file and redeploying. "Already scratched" session state (above) is
-  the one piece of runtime state the app has, and it's explicitly
-  memory-only, not persisted.
+- No backend — content is static, baked into the JS bundle at build
+  time. Editing a date after deploy means editing the data file and
+  redeploying. "Already scratched" state (above) is the one piece of
+  runtime state the app has; it's persisted client-side to
+  `localStorage`, but there's still no server/database involved.
 - No real canvas-based scratch-to-erase interaction.
 - No auth/gating — anyone with the link can view any route.
 

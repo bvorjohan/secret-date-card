@@ -8,6 +8,8 @@ import Ribbon from "../components/Ribbon";
 interface HomeProps {
   /** ids already visited via /date/:id this session — shown pre-scratched. */
   revealedIds: Set<string>;
+  /** Secret reset — see the serial-number button further down. */
+  onResetRevealed: () => void;
 }
 
 /**
@@ -26,7 +28,7 @@ interface HomeProps {
  * description. Scratching still navigates to /date/:id for the real
  * reveal, unchanged from before this pass.
  */
-export default function Home({ revealedIds }: HomeProps) {
+export default function Home({ revealedIds, onResetRevealed }: HomeProps) {
   return (
     <main className="ticket-page">
       <div className="ticket">
@@ -112,17 +114,31 @@ export default function Home({ revealedIds }: HomeProps) {
           <div className="ticket__barcode" aria-hidden="true" />
           <div className="ticket__footer-row">
             <p className="ticket__footer-tag">★ Good luck, love! ★</p>
-            <span className="ticket__serial" aria-hidden="true">
+            {/*
+              Secret reset: tapping the serial number wipes revealedIds
+              (App.tsx's resetRevealed) so every row goes back to
+              unscratched, and clears the persisted localStorage copy
+              with it. A real <button>, not aria-hidden, since it now
+              does something — but no visual change and a deliberately
+              boring aria-label, so it doesn't announce itself as
+              interactive to anyone not already in on it.
+            */}
+            <button
+              type="button"
+              className="ticket__serial"
+              aria-label="Ticket serial number"
+              onClick={onResetRevealed}
+            >
               TKT 000928
-            </span>
+            </button>
           </div>
           <p className="ticket__legal-line">
             Not a real lottery ticket &bull; For entertainment only
           </p>
           <p className="ticket__fine-print">
-            Odds of winning an awesome date: 1 in {dateOptions.length}.
-            Prizes may include food, fun, adventure, laughs, and/or
-            memories that last. Void where prohibited (it isn&rsquo;t).
+            Odds of winning an awesome date: {dateOptions.length} in {dateOptions.length}.
+            Redeemable at Central Cinema, San Fermo, Escape Rooms, Atoma,
+            Golden Gardens, Portland, and other participating locations.
           </p>
           <span
             className="ticket__star ticket__corner-star ticket__corner-star--left"

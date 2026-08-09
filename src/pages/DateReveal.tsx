@@ -8,11 +8,13 @@ import noBueno from "../assets/no-bueno.png";
 
 interface DateRevealProps {
   /**
-   * Marks this date as scratched, so the ticket shows it revealed if
-   * you navigate back — and, for a "ready" date the first time it's
-   * revealed this session, triggers the scratch-notification email
-   * (see src/lib/notifyScratched.ts). Takes the full option (not just
-   * the id) because that email-triggering decision needs `status`.
+   * For a "ready" date: marks it scratched (so the ticket shows it
+   * revealed if you navigate back) and, the first time it's revealed
+   * this session, triggers the scratch-notification email (see
+   * src/lib/notifyScratched.ts). Pending dates are reported here too
+   * but deliberately don't stick — see App.tsx's markRevealed. Takes
+   * the full option (not just the id) because both of those decisions
+   * need `status`.
    */
   onReveal: (option: DateOption) => void;
 }
@@ -35,9 +37,9 @@ export default function DateReveal({ onReveal }: DateRevealProps) {
     if (option) {
       onReveal(option);
     }
-    // Runs for pending ids too — the panel was still scratched, even
-    // though what's underneath was "No Bueno." Whether that also
-    // triggers an email is decided inside onReveal (App.tsx), not here.
+    // Still called for pending ids — onReveal (App.tsx) is what
+    // decides pending doesn't stick on the home ticket; this route
+    // doesn't need to know that, it just reports what was visited.
   }, [option, onReveal]);
 
   if (!option) {
@@ -53,7 +55,7 @@ export default function DateReveal({ onReveal }: DateRevealProps) {
           text={
             isReady ? (
               <>
-                CONFIRMED
+                WINNER
                 <br />✓
               </>
             ) : (
@@ -69,10 +71,11 @@ export default function DateReveal({ onReveal }: DateRevealProps) {
 
         {isReady ? (
           <>
-            <MascotSticker size="lg" className="reveal-card__mascot" />
-            <span className="reveal-card__icon" aria-hidden="true">
-              {option.icon}
-            </span>
+            <MascotSticker
+              size="lg"
+              className="reveal-card__mascot"
+              src={option.sticker}
+            />
             <p className="reveal-card__eyebrow">You scratched off</p>
             {/*
               Plain text, not ArcText: unlike the ticket's hand-authored
