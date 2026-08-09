@@ -25,9 +25,11 @@ interface ScratchPanelProps {
  * the post-scratch visual with no delay: tapping it just re-navigates
  * immediately, there's nothing left to "reveal."
  *
- * The foil face shows a repeated-icon watermark (like real scratch
- * tickets print a mascot/symbol under the scratch coating) plus the
- * "SCRATCH" label — see src/assets/scratch-cat-icon.png.
+ * The foil face is a metallic-silver gradient (animated shine sweep)
+ * with a static grain overlay for texture, an icon watermark (like
+ * real scratch tickets print a mascot/symbol under the scratch
+ * coating — see src/assets/scratch-cat-icon.png), and the "SCRATCH"
+ * label.
  *
  * The slight per-tab tilt is applied to a wrapping `.scratch-panel-slot`,
  * not to `.scratch-panel` itself — see the comment on that CSS rule
@@ -67,6 +69,7 @@ export default function ScratchPanel({
         }
       >
         <span className="scratch-panel__foil" aria-hidden="true">
+          <span className="scratch-panel__grain" />
           <img src={catIcon} className="scratch-panel__watermark" alt="" />
         </span>
         <span className="scratch-panel__content">

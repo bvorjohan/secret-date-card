@@ -59,6 +59,8 @@ src/
   index.css              # all styling (cheap-glossy scratcher look, fonts, palette)
 
 public/og-image.jpg      # share-card image (see docs/SPEC.md "Share link preview")
+docs/reference/          # design reference material (e.g. the lotto-ticket mood board),
+                          # not shipped to the site — see docs/SPEC.md "Lotto reference board"
 ```
 
 ## Routes

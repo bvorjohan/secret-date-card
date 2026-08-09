@@ -251,11 +251,11 @@ current direction — lean all the way into tacky. Concretely:
   replacing the earlier aged-paper grain — this card is laminated
   plastic-cheap, not aged paper.
 - Each date option is its own scratch **tab** — a small bordered
-  rectangle (portrait, `aspect-ratio: 4/5`) with a pastel-holographic
-  foil (multiple translucent color layers over the diagonal stripe
-  pattern) and a slight alternating rotation per tab
-  (`nth-child(odd/even)`), so the sheet reads as loosely-printed
-  cut-apart pieces rather than a precise grid.
+  rectangle (portrait, `aspect-ratio: 4/5`) with a **metallic silver**
+  foil (not pastel/rainbow — see "Lotto reference board" below) and a
+  slight alternating rotation per tab (`nth-child(odd/even)`), so the
+  sheet reads as loosely-printed cut-apart pieces rather than a precise
+  grid.
 - **The mascot sticker is deliberately huge and bursts off the card
   edge** — `size="sm"` is 112px (was 50px in the tasteful draft),
   positioned with negative offsets so it visually pops off the
@@ -273,6 +273,74 @@ and Special Elite (`--font-stamp`). All styling lives in
 component library, so new UI should extend the existing custom
 properties (`--color-*`, `--radius-*`, `--font-*`) rather than
 introducing new patterns.
+
+### Lotto reference board
+
+The user had ChatGPT generate a visual-reference mood board of real
+scratch-off lottery tickets and asked to move the design closer to it.
+It's kept at
+[`docs/reference/lotto-ticket-reference-board.jpg`](reference/lotto-ticket-reference-board.jpg)
+— worth opening directly if you're touching this area, since a lot of
+its guidance is easier to see than to summarize. Its explicit DO/DON'T
+list is the sharpest version of the brief:
+
+> **DO:** loud, energetic, exciting · overdesigned and dense · high
+> contrast colors · multiple borders & frames · print textures &
+> imperfections · make it feel like a real object · embrace the chaos
+>
+> **DON'T:** minimal or clean layouts · soft pastels or muted tones ·
+> huge whitespace · generic web UI patterns · glassmorphism/blur ·
+> overly rounded components · look like a casino website
+
+Changes made in direct response to it:
+
+- **Silver scratch foil, not pastel/rainbow.** The board is explicit
+  that scratch coating should look like real silver-scratch texture,
+  not a soft color wash — `.scratch-panel__foil`'s gradient stops were
+  recolored from a rainbow pastel to metallic grays/white, and a new
+  static grain layer (`.scratch-panel__grain`, a plain sibling
+  element, deliberately *not* another layer on the animated gradient —
+  see the shimmer history below for why that distinction matters) adds
+  the speckled texture.
+- **Starburst rays behind the headline** (`.ticket__header::before`,
+  using the shared `--starburst` `repeating-conic-gradient` custom
+  property) — the board's "Ornamentation" panel and the "MEGA MONEY"
+  example both center a headline in radiating rays; this is one of the
+  most visually distinctive real-ticket motifs and was completely
+  missing before.
+- **Halftone dot texture** (`--halftone`, a small `radial-gradient`
+  tile) layered onto `.ticket__banner` — print-halftone dots are
+  called out explicitly as a "Textures & Surfaces" reference and were
+  otherwise absent; the rest of the card still relies on the older
+  `--sparkle`/`--gloss` tokens, which read as "glossy plastic" rather
+  than "printed paper" — an intentional difference (see "Cheap glossy
+  gas-station" framing above), not an inconsistency to resolve by
+  replacing sparkle with halftone everywhere.
+- **Gradient-filled headline text** (gold → orange, via
+  `background-clip: text`) instead of a flat gold fill, on both
+  `.ticket__title` and `.reveal-card__title` — matches the board's
+  typography examples ("MEGA MONEY," "$250,000!"), which are never a
+  single flat color.
+- **Double-frame border**: `.ticket` and `.reveal-card` now pair the
+  existing solid black `border` with a second gold `outline` inset
+  from it (`outline-offset: -10px`). "Multiple borders & frames" is a
+  named DO; `outline` (not a second nested element) was chosen because
+  it isn't clipped by `overflow: visible`, which `.ticket` needs for
+  the mascot — see the overflow/clipping gotcha below.
+- **Palette expanded**: added `--color-red`/`--color-red-dark` (a true
+  red, not the existing hot-pink `--color-accent`) and `--color-lime`
+  (olive-green), matching the board's stated core palette of
+  red/gold/olive-green/teal/purple/black more closely than the
+  pink/gold/teal/purple mix alone did. Not fully wired in everywhere
+  yet — treat unused-looking color tokens here as available palette,
+  not dead code, before removing them.
+
+Not (yet) attempted from the board, in case it comes up again: ribbon
+banner shapes (`Ornamentation` panel), a literal torn/rough-edged
+reveal transition (currently a scale+fade, not a torn-paper look), and
+further layout density (the board's "no empty space, information
+packed in" DO is only partially embraced — the ticket is denser than
+before but still has more breathing room than the reference examples).
 
 **Overflow/clipping gotcha:** `.ticket` is `overflow: visible` so the
 mascot can burst past its edge. That means any other child that needs
@@ -321,6 +389,15 @@ they don't get reintroduced:
    `repeating-linear-gradient` stripe layer, and the separate shimmer
    child element entirely — `.scratch-panel__foil` is now the only
    element involved, with one `linear-gradient` and one `@keyframes`.
+4. Later, a grain-texture layer was added back for the "silver scratch"
+   look (see "Lotto reference board" above) — but as
+   `.scratch-panel__grain`, a **plain, static, non-animated sibling
+   element**, not a second layer on `.scratch-panel__foil`'s own
+   animated background. That distinction is the whole point: adding it
+   *inside* the animated element's `background-image` list would
+   revive exactly the multi-layer-animation risk this rewrite was
+   fixing. If this needs more texture later, keep new layers on their
+   own static elements too.
 
 **Lesson embedded in the code, not just here:** if a visual effect
 needs hand-derived tile-size arithmetic or multiple overlapping

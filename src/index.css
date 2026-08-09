@@ -15,6 +15,9 @@
   --color-gold-light: #ffd60a;
   --color-teal: #00c2a8;
   --color-purple: #7b2ff7;
+  --color-red: #e0201f;
+  --color-red-dark: #a4130f;
+  --color-lime: #a4c400;
   --color-foil: #cfd2d6;
   --color-foil-dark: #9a9ea3;
 
@@ -72,6 +75,18 @@ a {
     rgba(255, 255, 255, 0.55) 45%,
     rgba(255, 255, 255, 0) 60%
   );
+  /* Radiating "explosion" rays behind a headline — a signature real-
+     scratch-ticket motif (see the "MEGA MONEY" reference in
+     docs/SPEC.md "Visual language: lotto reference board"). */
+  --starburst: repeating-conic-gradient(
+    from 0deg,
+    var(--color-gold-light) 0deg 9deg,
+    transparent 9deg 20deg
+  );
+  /* Print-halftone dot texture, for surfaces that should read as
+     printed ink rather than a flat digital gradient. */
+  --halftone: radial-gradient(rgba(0, 0, 0, 0.28) 1.1px, transparent 1.5px);
+  --halftone-size: 7px 7px;
 }
 
 /* ---------- Ticket page (Home) ---------- */
@@ -99,18 +114,25 @@ a {
      (below) instead of relying on the card to do it. */
   overflow: visible;
   border: 4px solid var(--color-ink);
+  /* Double-frame: solid black outer border (above) + a second gold
+     line inset from it. Real tickets almost never have just one
+     border — outline doesn't get clipped by overflow:visible, so this
+     is safe alongside the mascot bursting past the corner. */
+  outline: 3px solid var(--color-gold);
+  outline-offset: -10px;
 }
 
 .ticket__banner {
   margin: 0 -18px 18px;
   padding: 10px 18px;
-  background: repeating-linear-gradient(
+  background-image: var(--halftone), repeating-linear-gradient(
     -45deg,
     var(--color-accent) 0px,
     var(--color-accent) 14px,
     var(--color-gold) 14px,
     var(--color-gold) 28px
   );
+  background-size: var(--halftone-size), auto;
   border-bottom: 4px solid var(--color-ink);
   border-radius: 10px 10px 0 0;
   text-align: center;
@@ -140,6 +162,22 @@ a {
   /* Leave clearance on the right so the big mascot sticker (bursting
      off the top-right corner) doesn't clip the title/subtitle. */
   padding-right: 84px;
+  position: relative;
+}
+
+.ticket__header::before {
+  content: "";
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  width: 340px;
+  height: 340px;
+  transform: translate(-50%, -50%);
+  background: var(--starburst);
+  opacity: 0.3;
+  pointer-events: none;
+  /* No z-index needed: a ::before always paints before the element's
+     own text content, so it sits behind the title/subtitle for free. */
 }
 
 .ticket__eyebrow {
@@ -154,13 +192,24 @@ a {
 }
 
 .ticket__title {
+  position: relative;
   margin: 0;
   font-family: var(--font-display);
   font-size: 2.5rem;
   line-height: 1.05;
   font-weight: 400;
   letter-spacing: 0.01em;
+  /* Gradient fill instead of a flat color — real ticket headlines are
+     almost always gold-to-orange, not a single flat gold. Falls back
+     to solid gold (color, below) in browsers without background-clip:
+     text support; -webkit-text-stroke needs the -webkit- prefix set
+     regardless, so this is Chrome/Safari-first like the rest of the
+     display type on this page. */
   color: var(--color-gold);
+  background: linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-gold) 55%, #ff8c00 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   -webkit-text-stroke: 2.5px var(--color-ink);
   text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.3);
 }
@@ -314,7 +363,15 @@ a {
  * back to its start — there is no wrap-around point at all, so there
  * is nothing for a tiling seam to appear at, by construction. Keep it
  * this simple; don't re-add extra gradient layers or a separate
- * shimmer element without a real reason.
+ * ANIMATED element without a real reason.
+ *
+ * Colors are metallic silver, not the earlier rainbow/pastel wash —
+ * real scratch-ticket foil is silver, not a color gradient (see
+ * docs/SPEC.md "Visual language: lotto reference board"). The grain
+ * texture that sells the "foil" look is a separate, static (never
+ * animated) child element — .scratch-panel__grain, below — not another
+ * layer on this same animated background, specifically to avoid
+ * reintroducing the multi-layer-animation risk above.
  */
 .scratch-panel__foil {
   position: absolute;
@@ -322,13 +379,13 @@ a {
   z-index: 2;
   background: linear-gradient(
     100deg,
-    #9aa3ad 0%,
-    #ff8fb3 16%,
-    #fef6b0 32%,
-    #8fe3d0 48%,
-    #c9a6f7 64%,
-    #cfd2d6 80%,
-    #9aa3ad 100%
+    #8b8f95 0%,
+    #d7dadd 16%,
+    #f6f7f8 32%,
+    #ffffff 48%,
+    #f6f7f8 64%,
+    #d7dadd 80%,
+    #8b8f95 100%
   );
   background-size: 250% 100%;
   animation: shimmer 2.2s ease-in-out infinite alternate;
@@ -338,6 +395,21 @@ a {
   justify-content: center;
   gap: 4px;
   transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+/*
+ * Static grain overlay, sitting between the shine gradient and the
+ * watermark/text. A plain sibling element (not another background
+ * layer on .scratch-panel__foil) on purpose — see the comment above.
+ */
+.scratch-panel__grain {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.5) 1px, transparent 1.4px);
+  background-size: 3px 3px;
+  mix-blend-mode: multiply;
+  opacity: 0.22;
+  pointer-events: none;
 }
 
 .scratch-panel__watermark {
@@ -354,7 +426,7 @@ a {
   font-size: 0.62rem;
   letter-spacing: 0.05em;
   color: var(--color-ink);
-  opacity: 0.55;
+  opacity: 0.65;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
@@ -510,6 +582,8 @@ a {
   position: relative;
   overflow: hidden;
   border: 4px solid var(--color-ink);
+  outline: 3px solid var(--color-gold);
+  outline-offset: -10px;
 }
 
 .reveal-card__mascot {
@@ -547,6 +621,10 @@ a {
   font-size: 2rem;
   font-weight: 400;
   color: var(--color-gold);
+  background: linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-gold) 55%, #ff8c00 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   -webkit-text-stroke: 2px var(--color-ink);
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
 }
