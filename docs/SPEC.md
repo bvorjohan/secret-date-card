@@ -162,24 +162,43 @@ of them to show an image.
 
 - `og:image` points to `public/og-image.jpg` (1200×630, the standard
   social-preview size) — a **dedicated share-card image**, not a
-  screenshot of the actual (tall, mobile-first) ticket page. It reuses
-  the site's real colors/fonts/mascot so it reads as the same brand,
-  laid out landscape specifically for how link previews render.
-- **How it was made** (so it can be regenerated if the branding
-  changes again): a standalone HTML file styled with the same CSS
-  custom properties as `src/index.css`, screenshotted at 2400×1260 via
-  Playwright (`deviceScaleFactor: 2`, for crisp text) and downscaled
-  to 1200×630. That intermediate HTML wasn't kept in the repo — it's
-  small enough to redo from scratch by copying the relevant tokens out
-  of `index.css` if the image ever needs updating; the PNG screenshot
-  was converted to JPEG (quality 88) since a mostly-photographic/
-  gradient image compresses far smaller as JPEG than PNG (~130KB vs
-  ~370KB) with no visible quality loss at this size.
+  screenshot of the actual (tall, mobile-first) ticket page. Currently:
+  a dark, starry "secret at night" design built around
+  `src/assets/shhhh.png` (a personal Bitmoji, shushing) with the
+  headline "Secret Date Nite?" — a deliberately different mood from
+  the rest of the site's bright lottery-ticket look, by request ("I
+  would like to do something custom"). `og:title` / `twitter:title`
+  match the image's own headline text.
+- `src/assets/shhhh.png` **is kept in the repo despite not being
+  imported by any component** — it's the source crop used to generate
+  `og-image.jpg`, kept so the card can be regenerated without
+  re-cropping from the original download. Don't delete it as "unused";
+  check whether it's referenced by an OG-card build step (there isn't
+  one yet — see below) before assuming that.
+- **How the image was made** (so it can be regenerated if this changes
+  again): a standalone HTML file, styled with the same CSS custom
+  properties as `src/index.css`, laying out `shhhh.png` and the
+  headline; screenshotted at 2400×1260 via Playwright
+  (`deviceScaleFactor: 2`, for crisp text) and downscaled to 1200×630.
+  That intermediate HTML wasn't kept in the repo (only the source
+  image was) — it's small enough to redo from scratch by copying the
+  relevant tokens out of `index.css`. The PNG screenshot was converted
+  to JPEG (quality 88) since a mostly-dark/gradient image compresses
+  far smaller as JPEG than PNG (~70KB vs several hundred KB) with no
+  visible quality loss at this size. There is no build-time script for
+  this — it's a manual, occasional regeneration, not CI'd.
 - `og:image` must be an **absolute** URL
   (`https://secret-date-card.netlify.app/og-image.jpg`) — crawlers
   fetch it directly and won't resolve a relative path against the
   page. If the Netlify domain ever changes, this has to be updated by
   hand; it's not derived from anything at build time.
+- **The share-card title ("Secret Date Nite?") intentionally differs
+  from the actual page headline ("Secret Date Blowout" on the ticket
+  itself — see "Visual language" below).** This is a deliberate
+  teaser/reveal split, not copy drifting out of sync: what shows in
+  the text message is a different hook from what shows once you
+  actually open the link. Don't "fix" this by making them match unless
+  asked.
 - No automated check confirms the preview actually renders correctly
   in iMessage/etc. — that was eyeballed manually. If you change
   `og-image.jpg` or the meta tags, a link-preview debugger (e.g.
