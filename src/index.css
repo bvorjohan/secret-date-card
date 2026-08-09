@@ -1,0 +1,317 @@
+:root {
+  color-scheme: light;
+
+  --color-bg: #1b1024;
+  --color-ticket: #fdf6e3;
+  --color-ticket-edge: #f1e2b8;
+  --color-ink: #2b1d3c;
+  --color-ink-muted: #6b5c7c;
+  --color-accent: #c8102e;
+  --color-accent-dark: #8f0b20;
+  --color-gold: #d4a017;
+  --color-gold-light: #f1c94a;
+  --color-foil: #9aa3ad;
+  --color-foil-dark: #6d757e;
+
+  --radius-lg: 24px;
+  --radius-md: 14px;
+
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #34203f 0%, var(--color-bg) 70%);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+/* ---------- Ticket page (Home) ---------- */
+
+.ticket-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.ticket {
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(180deg, var(--color-ticket) 0%, var(--color-ticket-edge) 100%);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  padding: 28px 20px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ticket::before,
+.ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  background: var(--color-bg);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.ticket::before {
+  left: -14px;
+}
+
+.ticket::after {
+  right: -14px;
+}
+
+.ticket__header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.ticket__eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.ticket__title {
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.ticket__subtitle {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--color-ink-muted);
+}
+
+.ticket__perforation {
+  height: 0;
+  border-top: 2px dashed rgba(107, 92, 124, 0.35);
+  margin: 0 -20px 20px;
+}
+
+.ticket__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.ticket__footer {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.ticket__footer p {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--color-ink-muted);
+}
+
+/* ---------- Scratch panel ---------- */
+
+.scratch-panel {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  background: var(--color-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.scratch-panel__content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--color-ticket);
+  padding: 8px;
+  text-align: center;
+}
+
+.scratch-panel__icon {
+  font-size: 1.9rem;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+}
+
+.scratch-panel__teaser {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(253, 246, 227, 0.85);
+}
+
+.scratch-panel__foil {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(--color-foil) 0px,
+      var(--color-foil) 8px,
+      var(--color-foil-dark) 8px,
+      var(--color-foil-dark) 16px
+    );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+.scratch-panel__foil::after {
+  content: "SCRATCH";
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.scratch-panel__shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.35) 45%,
+    transparent 70%
+  );
+  background-size: 220% 220%;
+  animation: shimmer 2.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 120% 0%;
+  }
+  100% {
+    background-position: -20% 0%;
+  }
+}
+
+.scratch-panel.is-revealing .scratch-panel__foil {
+  transform: scale(1.4) rotate(6deg);
+  opacity: 0;
+}
+
+.scratch-panel.is-revealing .scratch-panel__content {
+  animation: pop-in 0.4s ease 0.15s backwards;
+}
+
+@keyframes pop-in {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scratch-panel__shimmer {
+    animation: none;
+  }
+  .scratch-panel__foil,
+  .scratch-panel__content {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ---------- Reveal / NotFound pages ---------- */
+
+.reveal-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.reveal-card {
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(180deg, var(--color-ticket) 0%, var(--color-ticket-edge) 100%);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  padding: 40px 28px 32px;
+  text-align: center;
+  animation: pop-in 0.4s ease;
+}
+
+.reveal-card__icon {
+  display: inline-block;
+  font-size: 2.6rem;
+  margin-bottom: 8px;
+}
+
+.reveal-card__eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.reveal-card__title {
+  margin: 0 0 12px;
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.reveal-card__description {
+  margin: 0 0 24px;
+  font-size: 0.96rem;
+  line-height: 1.5;
+  color: var(--color-ink-muted);
+}
+
+.reveal-card__back {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-accent-dark);
+  text-decoration: none;
+}
+
+.reveal-card__back:hover {
+  text-decoration: underline;
+}
