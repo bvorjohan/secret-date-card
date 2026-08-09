@@ -20,7 +20,11 @@ before changing routing, the data model, or page states.
 - react-router-dom v7 (`BrowserRouter`), client-side only, no backend
 - Plain CSS (`src/index.css`), no CSS framework
 - oxlint for linting
-- Deploy target: Netlify (static build output from `npm run build`)
+- Deploy target: Netlify (static build output from `npm run build`).
+  **Not connected to a Netlify site yet as of this writing** — the repo
+  exists on GitHub but hasn't been deployed. The scratch-notification
+  email feature (below) needs an actual Netlify deploy plus a manual
+  dashboard step to work; see docs/SPEC.md "Scratch notification email".
 
 **Node/tooling note:** the dev machine runs Node 20.16, which is below
 what Vite 8 / oxlint 1.7x require (they need Node ^20.19 or >=22.12 for
@@ -48,8 +52,9 @@ src/
   components/            # ScratchPanel, MascotSticker, StampSeal
   pages/                 # Home, DateReveal, NotFound — one per route
   assets/mascot-sticker.png  # personal photo/bitmoji used as a sticker badge
-  App.tsx                # router config
-  index.css              # all styling (vintage ticket look, fonts, palette)
+  lib/notifyScratched.ts # fires the Netlify Forms POST on a real reveal
+  App.tsx                # router config + in-memory "already scratched" session state
+  index.css              # all styling (cheap-glossy scratcher look, fonts, palette)
 ```
 
 ## Routes

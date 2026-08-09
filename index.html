@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Special+Elite&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Special+Elite&display=swap"
       rel="stylesheet"
     />
     <title>Redeem a Date</title>
@@ -15,5 +15,21 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!--
+      Static, hidden, and outside #root on purpose: Netlify discovers
+      forms by parsing the *built* HTML at deploy time, before any JS
+      runs, so a form only ever rendered by React would never be
+      registered. This one is never actually submitted by a browser —
+      src/lib/notifyScratched.ts POSTs to it via fetch() at runtime.
+      Field names here must match the URLSearchParams keys there.
+      See docs/SPEC.md "Scratch notification email".
+    -->
+    <form name="scratch-reveal" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="text" name="bot-field" />
+      <input type="text" name="id" />
+      <input type="text" name="title" />
+      <input type="text" name="when" />
+    </form>
   </body>
 </html>
