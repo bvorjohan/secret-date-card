@@ -1185,7 +1185,9 @@ a {
 }
 
 .mascot-sticker__ring {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   padding: 4px;
   background: var(--color-ticket);
@@ -1194,12 +1196,23 @@ a {
   box-shadow: 0 0 0 1px var(--color-ink);
 }
 
+/*
+ * `contain`, not `cover`, and inset to 86% instead of filling the
+ * ring completely — `cover` fills the circle edge-to-edge, but
+ * combined with the circular clip cutting the four corners off
+ * whatever square it crops to, a source image with content spread
+ * close to its own edges (not every custom per-event sticker is
+ * cropped as tight/centered as the default) loses real content
+ * invisibly, with no visual cue that it happened. `contain` guarantees
+ * the whole source image is always visible; the 86% inset (rather
+ * than 100%) leaves enough margin that the circular ring doesn't clip
+ * the image's own corners either.
+ */
 .mascot-sticker__image {
   display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
+  width: 92%;
+  height: 92%;
+  object-fit: contain;
 }
 
 .mascot-sticker--sm .mascot-sticker__ring {
