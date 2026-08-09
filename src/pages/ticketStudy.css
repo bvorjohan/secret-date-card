@@ -1,0 +1,419 @@
+/*
+ * Styles for TicketStudy.tsx only — a fidelity exercise, not part of
+ * the shared design system in ../index.css. Every color/shape here
+ * was picked by eyeballing one specific example ("MEGA MONEY", $10,
+ * "Ticket Anatomy" panel) in docs/reference/lotto-ticket-reference-board.jpg
+ * as closely as CSS reasonably allows, not by extending the app's
+ * existing --color-* tokens. Nothing here should leak into or be
+ * reused by the production ticket unless that's a deliberate decision
+ * to adopt this direction — see docs/SPEC.md "Lotto reference board".
+ */
+
+.tstudy-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background: #0d0d0d;
+  box-sizing: border-box;
+}
+
+.tstudy-page *,
+.tstudy-page *::before,
+.tstudy-page *::after {
+  box-sizing: border-box;
+}
+
+.tstudy-ticket {
+  position: relative;
+  width: min(430px, 92vw);
+  padding: 34px 20px 20px;
+  border: 12px solid #f2b705;
+  border-radius: 8px;
+  /*
+   * Two layers: a repeating-conic-gradient sunburst (rays), centered
+   * above the headline like the reference, over a red->orange radial
+   * glow. Background painting always clips to the box regardless of
+   * `overflow`, so this can't leak past the border even though the
+   * corner badges below rely on overflow staying visible.
+   */
+  background:
+    /* darkens the lower third so the fine print stays legible over it */
+    radial-gradient(ellipse at 50% 100%, rgba(0, 0, 0, 0.4) 0%, transparent 55%),
+    repeating-conic-gradient(
+      from 0deg at 50% 32%,
+      rgba(255, 224, 150, 0.22) 0deg 2.5deg,
+      transparent 2.5deg 12deg
+    ),
+    radial-gradient(
+      ellipse at 50% 34%,
+      #ff9a1f 0%,
+      #f4530f 32%,
+      #d81f1f 62%,
+      #9c1210 100%
+    );
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  overflow: visible;
+}
+
+/* ---- corner badges ---- */
+
+.tstudy-price {
+  position: absolute;
+  top: -14px;
+  left: -16px;
+  z-index: 5;
+  padding: 5px 10px;
+  background: #fff;
+  border: 3px solid #161105;
+  border-radius: 6px;
+  font-family: "Anton", sans-serif;
+  font-size: 22px;
+  color: #161105;
+  transform: rotate(-4deg);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.tstudy-seal {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  z-index: 5;
+  width: 116px;
+  height: 116px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #161105;
+  transform: rotate(-9deg);
+  /* 16-spike burst seal, generated as an alternating-radius polygon. */
+  clip-path: polygon(
+    50% 0%,
+    57.4% 12.7%,
+    69.1% 3.8%,
+    71.1% 18.4%,
+    85.4% 14.6%,
+    81.6% 28.9%,
+    96.2% 30.9%,
+    87.3% 42.6%,
+    100% 50%,
+    87.3% 57.4%,
+    96.2% 69.1%,
+    81.6% 71.1%,
+    85.4% 85.4%,
+    71.1% 81.6%,
+    69.1% 96.2%,
+    57.4% 87.3%,
+    50% 100%,
+    42.6% 87.3%,
+    30.9% 96.2%,
+    28.9% 81.6%,
+    14.6% 85.4%,
+    18.4% 71.1%,
+    3.8% 69.1%,
+    12.7% 57.4%,
+    0% 50%,
+    12.7% 42.6%,
+    3.8% 30.9%,
+    18.4% 28.9%,
+    14.6% 14.6%,
+    28.9% 18.4%,
+    30.9% 3.8%,
+    42.6% 12.7%
+  );
+}
+
+.tstudy-seal__text {
+  font-family: "Anton", sans-serif;
+  font-size: 11.5px;
+  line-height: 1.2;
+  letter-spacing: 0.3px;
+  color: #fff;
+  text-align: center;
+  transform: rotate(9deg); /* counter-rotate: badge is tilted, text reads level */
+  padding: 0 8px;
+}
+
+/* ---- scattered gold star / spark confetti ---- */
+
+.tstudy-star,
+.tstudy-icon-star {
+  clip-path: polygon(
+    50% 0%,
+    61.2% 34.6%,
+    97.6% 34.5%,
+    68.1% 55.9%,
+    79.4% 90.5%,
+    50% 69%,
+    20.6% 90.5%,
+    31.9% 55.9%,
+    2.4% 34.5%,
+    38.8% 34.6%
+  );
+  background: linear-gradient(180deg, #ffe98a 0%, #d99a1a 100%);
+}
+
+.tstudy-star {
+  position: absolute;
+  z-index: 1;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.6));
+}
+
+.tstudy-star--1 {
+  top: 78px;
+  left: 18px;
+  width: 22px;
+  height: 22px;
+  transform: rotate(-10deg);
+}
+
+.tstudy-star--2 {
+  top: 158px;
+  left: 8px;
+  width: 26px;
+  height: 26px;
+  transform: rotate(8deg);
+}
+
+.tstudy-star--3 {
+  top: 268px;
+  right: 14px;
+  width: 20px;
+  height: 20px;
+  transform: rotate(14deg);
+}
+
+.tstudy-star--4 {
+  top: 200px;
+  right: 8px;
+  width: 15px;
+  height: 15px;
+  opacity: 0.8;
+  transform: rotate(-6deg);
+}
+
+.tstudy-star--5 {
+  top: 40px;
+  right: 130px;
+  width: 13px;
+  height: 13px;
+  opacity: 0.75;
+  transform: rotate(20deg);
+}
+
+.tstudy-spark {
+  position: absolute;
+  z-index: 1;
+  background: #2a2a2a;
+  opacity: 0.85;
+}
+
+.tstudy-spark--1 {
+  top: 96px;
+  right: 40px;
+  width: 14px;
+  height: 14px;
+  clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+  transform: rotate(12deg);
+}
+
+.tstudy-spark--2 {
+  top: 40px;
+  left: 100px;
+  width: 10px;
+  height: 10px;
+  clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+  background: #f2b705;
+  opacity: 0.65;
+}
+
+/* ---- headline block ---- */
+
+.tstudy-headline {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.tstudy-mega,
+.tstudy-money,
+.tstudy-jackpot {
+  font-family: "Luckiest Guy", cursive;
+  margin: 0;
+  line-height: 0.85;
+}
+
+/*
+ * A gradient fill via `background-clip: text` fights `-webkit-text-stroke`
+ * for paint order in Chromium — the stroke (opaque, drawn per-glyph)
+ * ends up dominating and the interior reads as near-solid instead of
+ * showing the gradient. Real scratcher headlines are 90% about that
+ * thick outline + offset drop-shadow anyway; a flat, saturated fill
+ * color gets the same read far more reliably than fighting the
+ * gradient-clip/stroke interaction.
+ */
+.tstudy-mega {
+  font-size: clamp(46px, 15vw, 64px);
+  color: #ffb400;
+  -webkit-text-stroke: 2px #1a0e02;
+  text-shadow: 3px 4px 0 #7a1010;
+}
+
+.tstudy-money {
+  margin-top: -8px;
+  font-size: clamp(46px, 15vw, 64px);
+  color: #fff3d6;
+  -webkit-text-stroke: 2px #1a0e02;
+  text-shadow: 3px 4px 0 #7a1010;
+}
+
+.tstudy-winupto {
+  margin: 6px 0 -2px;
+  font-family: "Anton", sans-serif;
+  font-size: clamp(19px, 6vw, 25px);
+  letter-spacing: 3px;
+  color: #ffce4d;
+  -webkit-text-stroke: 1.2px #1a0e02;
+  text-shadow: 2px 2px 0 #7a1010;
+  transform: skewX(-4deg);
+}
+
+.tstudy-jackpot {
+  font-size: clamp(32px, 10vw, 44px);
+  color: #fff3d6;
+  -webkit-text-stroke: 2px #1a0e02;
+  text-shadow: 3px 4px 0 #b3660a;
+}
+
+/* Per-letter arc wrapper — see src/components/ArcText.tsx. */
+.arc-text {
+  display: inline-block;
+}
+
+.arc-text__char {
+  display: inline-block;
+}
+
+/* ---- play area (scratch surface) ---- */
+
+.tstudy-playarea {
+  position: relative;
+  z-index: 2;
+  margin-top: 16px;
+  padding: 12px 10px 16px;
+  border: 3px solid #1a0e02;
+  outline: 2px solid #f2b705;
+  outline-offset: -6px;
+  border-radius: 4px;
+  overflow: hidden;
+  /* Brushed-silver diagonal metal, same family of trick as the
+     scratch-panel foil gradient in ../index.css, but this page
+     intentionally doesn't import that file — kept self-contained. */
+  background:
+    repeating-linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.25) 0px 2px,
+      transparent 2px 6px
+    ),
+    linear-gradient(115deg, #8f8f8f 0%, #c8c8c8 22%, #f4f4f4 45%, #c8c8c8 68%, #8f8f8f 100%);
+}
+
+.tstudy-playarea::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.45) 1px, transparent 1.4px);
+  background-size: 3px 3px;
+  mix-blend-mode: multiply;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.tstudy-playarea__label {
+  position: relative;
+  margin: 2px 0;
+  font-family: "Anton", sans-serif;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-align: center;
+  color: #161105;
+}
+
+.tstudy-row {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 4px 10px;
+}
+
+.tstudy-row--your {
+  padding-bottom: 8px;
+}
+
+.tstudy-icon-star {
+  width: 15%;
+  aspect-ratio: 1;
+  filter: drop-shadow(1px 1px 0 #1a0e02);
+}
+
+.tstudy-coin {
+  width: 15%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #161105;
+  border: 2px solid #f2b705;
+  box-shadow: inset 0 0 0 1px #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Anton", sans-serif;
+  font-size: clamp(11px, 3.6vw, 15px);
+  color: #f2b705;
+}
+
+/* ---- "win up to 20 times" + fine print ---- */
+
+.tstudy-winup20 {
+  position: relative;
+  z-index: 2;
+  margin: 14px 0 10px;
+  text-align: center;
+  font-family: "Anton", sans-serif;
+  font-size: clamp(21px, 7vw, 29px);
+  letter-spacing: 1px;
+  color: #fff;
+  -webkit-text-stroke: 2px #1a0e02;
+  text-shadow: 2px 3px 0 #7a1010;
+}
+
+.tstudy-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.tstudy-fineprint {
+  flex: 1;
+  margin: 0;
+  font-family: "Oswald", sans-serif;
+  font-weight: 500;
+  font-size: 10.5px;
+  line-height: 1.35;
+  letter-spacing: 0.2px;
+  color: #fff5df;
+}
+
+.tstudy-serial {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  background: #fff;
+  border: 2px solid #161105;
+  border-radius: 3px;
+  font-family: "Anton", sans-serif;
+  font-size: 13px;
+  color: #161105;
+}

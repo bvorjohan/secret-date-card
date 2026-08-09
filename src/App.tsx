@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import Home from "./pages/Home";
 import DateReveal from "./pages/DateReveal";
 import NotFound from "./pages/NotFound";
+import TicketStudy from "./pages/TicketStudy";
 import type { DateOption } from "./data/dateOptions";
 import { notifyScratched } from "./lib/notifyScratched";
 
@@ -46,6 +47,7 @@ function App() {
           path="/date/:id"
           element={<DateReveal onReveal={markRevealed} />}
         />
+        <Route path="/ticket-study" element={<TicketStudy />} />
         <Route path="/not-found" element={<NotFound />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

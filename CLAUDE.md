@@ -51,12 +51,18 @@ npm run lint      # oxlint
 ```
 src/
   data/dateOptions.ts   # the single source of truth for ticket content
-  components/            # ScratchPanel, MascotSticker, StampSeal
+  components/            # ScratchPanel, MascotSticker, StampSeal, ArcText
   pages/                 # Home, DateReveal, NotFound — one per route
+  pages/TicketStudy.tsx + ticketStudy.css  # /ticket-study: standalone reference-fidelity
+                          # exercise, deliberately not using index.css tokens — see
+                          # docs/SPEC.md "Lotto reference board" > fidelity study.
+                          # Kept around as the fidelity reference even after its
+                          # techniques were ported into production (below).
   assets/mascot-sticker.png  # personal photo/bitmoji used as a sticker badge
   lib/notifyScratched.ts # fires the Netlify Forms POST on a real reveal
   App.tsx                # router config + in-memory "already scratched" session state
-  index.css              # all styling (cheap-glossy scratcher look, fonts, palette)
+  index.css              # all production styling — red/gold printed-lottery-ticket
+                          # look modeled on /ticket-study, fonts, palette
 
 public/og-image.jpg      # share-card image (see docs/SPEC.md "Share link preview")
 docs/reference/          # design reference material (e.g. the lotto-ticket mood board),
@@ -71,6 +77,7 @@ docs/reference/          # design reference material (e.g. the lotto-ticket mood
 | `/date/:id`   | DateReveal | Looks up `:id` in `dateOptions`          |
 | `/not-found`  | NotFound   | Explicit 404                             |
 | `*`           | NotFound   | Catch-all for unknown paths              |
+| `/ticket-study` | TicketStudy | Not linked from nav; reference-fidelity exercise |
 
 ## Editing ticket content
 

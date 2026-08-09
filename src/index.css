@@ -1,16 +1,19 @@
 :root {
   color-scheme: light;
 
-  /* Cheap-glossy gas-station scratcher palette: saturated candy colors,
-     silver/holo foil, thick black cartoon outlines. */
+  /* Printed-lottery-ticket palette: saturated red/orange/gold, silver
+     foil, thick black cartoon outlines — see docs/SPEC.md "Lotto
+     reference board". --color-accent/--color-accent-dark (hot pink)
+     and --color-ticket-edge belonged to an earlier "cheap glossy
+     gas-station" direction this superseded; removed rather than kept
+     as reserved palette, since hot pink doesn't fit this palette at
+     all (unlike --color-red/--color-lime below, which were added in
+     anticipation of exactly this use). */
   --color-bg: #100c18;
   --color-bg-glow: #3a1240;
   --color-ticket: #fffaf0;
-  --color-ticket-edge: #ffe9b8;
   --color-ink: #191414;
   --color-ink-muted: #6b6259;
-  --color-accent: #ff2f6e;
-  --color-accent-dark: #c2114a;
   --color-gold: #ffb703;
   --color-gold-light: #ffd60a;
   --color-teal: #00c2a8;
@@ -20,11 +23,18 @@
   --color-lime: #a4c400;
   --color-foil: #cfd2d6;
   --color-foil-dark: #9a9ea3;
+  --color-cream: #fff3d6;
 
   --radius-lg: 14px;
   --radius-md: 8px;
 
   --font-display: "Luckiest Guy", "Arial Black", sans-serif;
+  /* Bold condensed sans for badges/kickers/serial numbers — the
+     "printed ticket callout" voice, distinct from --font-display
+     (big bubble headline letters) and --font-stamp (typewriter
+     flavor text). Added alongside the lotto-reference-board pass —
+     see docs/SPEC.md "Lotto reference board". */
+  --font-condensed: "Anton", "Arial Narrow", sans-serif;
   --font-stamp: "Special Elite", "Courier New", monospace;
   --font-body: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 
@@ -58,33 +68,33 @@ a {
 }
 
 /*
- * Glitter/sparkle texture + glossy diagonal sheen, composed with the
- * gradient background on .ticket and .reveal-card below (a
- * background-image stack has to be declared alongside the gradient it
- * layers over — CSS doesn't let two rules merge into one property).
+ * Full "printed lottery ticket" background for .ticket and
+ * .reveal-card: a red->orange radial glow, a repeating-conic-gradient
+ * sunburst on top of it, and a bottom scrim so fine print stays
+ * legible over the rays. This replaced an earlier cream-paper +
+ * sparkle/gloss background that read as "nice web card" rather than
+ * "scratch ticket" — worked out first at full fidelity to one real
+ * example in the /ticket-study exercise (src/pages/TicketStudy.tsx),
+ * then ported here once the direction was approved. See docs/SPEC.md
+ * "Lotto reference board" for the full history.
  */
 :root {
-  --sparkle:
-    radial-gradient(rgba(255, 183, 3, 0.5) 1px, transparent 1.4px),
-    radial-gradient(rgba(255, 47, 110, 0.35) 1px, transparent 1.4px);
-  --sparkle-size: 26px 26px, 34px 34px;
-  --sparkle-position: 4px 6px, 18px 20px;
-  --gloss: linear-gradient(
-    115deg,
-    rgba(255, 255, 255, 0) 30%,
-    rgba(255, 255, 255, 0.55) 45%,
-    rgba(255, 255, 255, 0) 60%
-  );
-  /* Radiating "explosion" rays behind a headline — a signature real-
-     scratch-ticket motif (see the "MEGA MONEY" reference in
-     docs/SPEC.md "Visual language: lotto reference board"). */
-  --starburst: repeating-conic-gradient(
-    from 0deg,
-    var(--color-gold-light) 0deg 9deg,
-    transparent 9deg 20deg
-  );
-  /* Print-halftone dot texture, for surfaces that should read as
-     printed ink rather than a flat digital gradient. */
+  --ticket-bg:
+    radial-gradient(ellipse at 50% 100%, rgba(0, 0, 0, 0.4) 0%, transparent 55%),
+    repeating-conic-gradient(
+      from 0deg at 50% 30%,
+      rgba(255, 224, 150, 0.22) 0deg 2.5deg,
+      transparent 2.5deg 12deg
+    ),
+    radial-gradient(
+      ellipse at 50% 32%,
+      #ff9a1f 0%,
+      #f4530f 32%,
+      #d81f1f 62%,
+      #9c1210 100%
+    );
+  /* Print-halftone dot texture, used inside the play-area frame below
+     so it reads as printed ink rather than a flat digital fill. */
   --halftone: radial-gradient(rgba(0, 0, 0, 0.28) 1.1px, transparent 1.5px);
   --halftone-size: 7px 7px;
 }
@@ -102,172 +112,207 @@ a {
 .ticket {
   width: 100%;
   max-width: 420px;
-  background-image: var(--gloss), var(--sparkle), linear-gradient(180deg, var(--color-ticket) 0%, var(--color-ticket-edge) 100%);
-  background-size: 100% 100%, var(--sparkle-size), 100% 100%;
-  background-position: 0 0, var(--sparkle-position), 0 0;
+  background: var(--ticket-bg);
   border-radius: var(--radius-lg);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.05);
-  padding: 0 18px 20px;
+  padding: 30px 18px 20px;
   position: relative;
-  /* visible, not hidden: the mascot sticker deliberately bursts past
-     the top-right corner. .ticket__banner clips its own top corners
-     (below) instead of relying on the card to do it. */
+  /* visible, not hidden: the mascot sticker and the "win big" seal
+     both deliberately burst past the corners. */
   overflow: visible;
   border: 4px solid var(--color-ink);
   /* Double-frame: solid black outer border (above) + a second gold
      line inset from it. Real tickets almost never have just one
      border — outline doesn't get clipped by overflow:visible, so this
-     is safe alongside the mascot bursting past the corner. */
+     is safe alongside the mascot/seal bursting past the corners. */
   outline: 3px solid var(--color-gold);
   outline-offset: -10px;
 }
 
-.ticket__banner {
-  margin: 0 -18px 18px;
-  padding: 10px 18px;
-  background-image: var(--halftone), repeating-linear-gradient(
-    -45deg,
-    var(--color-accent) 0px,
-    var(--color-accent) 14px,
-    var(--color-gold) 14px,
-    var(--color-gold) 28px
-  );
-  background-size: var(--halftone-size), auto;
-  border-bottom: 4px solid var(--color-ink);
-  border-radius: 10px 10px 0 0;
-  text-align: center;
-}
-
-.ticket__corner {
+/*
+ * Corner badges: a price-tag-style tag (top-left) and the mascot
+ * sticker (top-right) — a direct structural match for /ticket-study's
+ * `.tstudy-price` / `.tstudy-seal` pair, just swapping the seal for
+ * our own personal touch on the right instead of a second starburst.
+ */
+.ticket__price {
   position: absolute;
-  top: 52px;
-  left: 12px;
-  font-family: var(--font-stamp);
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
-  color: var(--color-ink-muted);
-  z-index: 1;
+  top: -14px;
+  left: -14px;
+  z-index: 5;
+  padding: 5px 12px;
+  background: var(--color-ticket);
+  border: 3px solid var(--color-ink);
+  border-radius: 6px;
+  font-family: var(--font-condensed);
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  color: var(--color-ink);
+  transform: rotate(-4deg);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
 }
 
 .ticket__mascot {
   position: absolute;
-  top: -26px;
-  right: -6px;
+  top: -22px;
+  right: -8px;
   z-index: 3;
 }
 
 .ticket__header {
   text-align: center;
-  margin: 10px 0 14px;
-  /* Leave clearance on the right so the big mascot sticker (bursting
-     off the top-right corner) doesn't clip the title/subtitle. */
-  padding-right: 84px;
-  position: relative;
+  margin: 20px 0 0;
+  /* Small left clearance for the price tag, larger right clearance
+     for the mascot sticker — asymmetric because the two badges are
+     very different sizes, unlike /ticket-study's roughly-matched pair. */
+  padding: 0 104px 0 24px;
 }
 
-.ticket__header::before {
-  content: "";
-  position: absolute;
-  top: 44%;
-  left: 50%;
-  width: 340px;
-  height: 340px;
-  transform: translate(-50%, -50%);
-  background: var(--starburst);
-  opacity: 0.3;
-  pointer-events: none;
-  /* No z-index needed: a ::before always paints before the element's
-     own text content, so it sits behind the title/subtitle for free. */
+/* Per-letter arc wrapper — see src/components/ArcText.tsx. Forced
+   nowrap: an arc-text run is a sequence of adjacent inline-block
+   letters with no real whitespace between them for the browser to
+   wrap at, so without this a too-wide run doesn't wrap cleanly — it
+   breaks mid-word wherever it runs out of room, which looks broken.
+   Nowrap makes it just visibly overflow instead, which is honest
+   and matches how real ticket headlines behave: sized to fit, never
+   wrapped. */
+.arc-text {
+  display: inline-block;
+  white-space: nowrap;
 }
 
-.ticket__eyebrow {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-ticket);
-  -webkit-text-stroke: 1.5px var(--color-ink);
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+.arc-text__char {
+  display: inline-block;
 }
 
 .ticket__title {
-  position: relative;
   margin: 0;
   font-family: var(--font-display);
-  font-size: 2.5rem;
+  /* Sized to fit the longest line ("SECRET DATE", 2 words) inside the
+     card at the narrowest supported viewport. */
+  font-size: clamp(1.6rem, 8.8vw, 2.3rem);
   line-height: 1.05;
   font-weight: 400;
   letter-spacing: 0.01em;
-  /* Gradient fill instead of a flat color — real ticket headlines are
-     almost always gold-to-orange, not a single flat gold. Falls back
-     to solid gold (color, below) in browsers without background-clip:
-     text support; -webkit-text-stroke needs the -webkit- prefix set
-     regardless, so this is Chrome/Safari-first like the rest of the
-     display type on this page. */
+  /*
+   * Flat fill, not a gradient-clip: `background-clip: text` fights
+   * `-webkit-text-stroke` for paint order in Chromium and the
+   * gradient interior ends up reading as near-solid instead of
+   * showing through — found while building the /ticket-study fidelity
+   * exercise (screenshot evidence, not a code-read guess). A
+   * saturated flat color + thick stroke + hard offset shadow gets the
+   * same "3D block letter" read far more reliably.
+   */
   color: var(--color-gold);
-  background: linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-gold) 55%, #ff8c00 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   -webkit-text-stroke: 2.5px var(--color-ink);
-  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.3);
+  text-shadow: 3px 4px 0 var(--color-red-dark);
 }
 
-.ticket__subtitle {
-  margin: 8px 0 0;
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: var(--color-accent-dark);
+.ticket__title--cream {
+  color: var(--color-cream);
 }
 
-.ticket__fineprint {
-  margin: 0 0 18px;
-  text-align: center;
-  font-family: var(--font-stamp);
-  font-size: 0.6rem;
-  letter-spacing: 0.03em;
+/* Small skewed kicker line, between the two headline words and the
+   big arced declaration below — matches .tstudy-winupto. */
+.ticket__kicker {
+  margin: 8px 0 -2px;
+  font-family: var(--font-condensed);
+  font-size: clamp(0.8rem, 4vw, 1rem);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-ink-muted);
-  line-height: 1.6;
+  color: var(--color-gold-light);
+  -webkit-text-stroke: 1px var(--color-ink);
+  text-shadow: 1px 2px 0 var(--color-red-dark);
+  transform: skewX(-4deg);
 }
 
-.ticket__perforation {
-  height: 12px;
-  margin: 0 -18px 20px;
-  background-image:
-    linear-gradient(
-      to right,
-      transparent 0,
-      transparent 3px,
-      var(--color-ink) 3px,
-      var(--color-ink) 9px,
-      transparent 9px,
-      transparent 12px
-    ),
-    radial-gradient(circle, var(--color-bg) 3px, transparent 3.5px);
-  background-repeat: repeat-x, repeat-x;
-  background-size: 12px 2px, 16px 12px;
-  background-position: center, center;
+/* The "promise" line — matches .tstudy-jackpot ("$1,000,000!"): the
+   biggest, boldest single declaration on the card. */
+.ticket__declare {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 9vw, 2.2rem);
+  line-height: 1;
+  color: var(--color-cream);
+  -webkit-text-stroke: 2px var(--color-ink);
+  text-shadow: 2px 3px 0 #b3660a;
+}
+
+/*
+ * Boxes the whole scratch grid off as its own zone, echoing the
+ * bordered gray "PLAY AREA" rectangle real tickets use to set the
+ * scratchable region apart from the promo copy around it — see the
+ * "Ticket Anatomy" callouts in docs/reference/lotto-ticket-reference-board.jpg.
+ * Deliberately not a flat gray fill like the reference: the panels
+ * themselves already carry the silver foil look, so this just needs
+ * to read as "a frame," not compete with them for that texture.
+ */
+.ticket__playarea {
+  margin: 12px -4px 4px;
+  padding: 14px 10px 10px;
+  border: 3px solid var(--color-ink);
+  outline: 2px solid var(--color-gold);
+  outline-offset: -6px;
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.16);
+  background-image: var(--halftone);
+  background-size: var(--halftone-size);
 }
 
 .ticket__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px;
-  padding: 6px 4px;
+  padding: 2px;
+}
+
+/* The bold banner line under the play area — matches .tstudy-winup20
+   ("WIN UP TO 20 TIMES!"): a big, flat-white, black-stroked claim.
+   The joke it sets up ("Not valid after the heat death of the
+   universe.") pays off two lines down, in the fine print. */
+.ticket__banner-line {
+  margin: 14px 0 0;
+  text-align: center;
+  font-family: var(--font-condensed);
+  font-size: clamp(1.15rem, 6.5vw, 1.55rem);
+  letter-spacing: 0.02em;
+  color: #fff;
+  -webkit-text-stroke: 2px var(--color-ink);
+  text-shadow: 2px 3px 0 var(--color-red-dark);
 }
 
 .ticket__footer {
-  margin-top: 20px;
-  text-align: center;
+  margin-top: 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ticket__footer-text {
+  flex: 1;
 }
 
 .ticket__footer p {
   margin: 0;
   font-family: var(--font-stamp);
-  font-size: 0.65rem;
-  color: var(--color-ink-muted);
+  font-size: 0.62rem;
+  color: var(--color-cream);
+  opacity: 0.85;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.ticket__serial {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  background: var(--color-ticket);
+  border: 2px solid var(--color-ink);
+  border-radius: 4px;
+  font-family: var(--font-condensed);
+  font-size: 0.75rem;
+  color: var(--color-ink);
+  white-space: nowrap;
 }
 
 /* ---------- Scratch panel ---------- */
@@ -405,8 +450,22 @@ a {
 .scratch-panel__grain {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgba(0, 0, 0, 0.5) 1px, transparent 1.4px);
-  background-size: 3px 3px;
+  /*
+   * Two static layers: fine grain dots, plus a diagonal streak
+   * texture for a richer brushed-metal read (matching the play area
+   * in /ticket-study). Both live here, not on .scratch-panel__foil,
+   * because that element is animated — see the shimmer history above
+   * for why stacking extra layers onto an animated background is the
+   * thing to avoid.
+   */
+  background-image:
+    repeating-linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.18) 0px 2px,
+      transparent 2px 6px
+    ),
+    radial-gradient(rgba(0, 0, 0, 0.5) 1px, transparent 1.4px);
+  background-size: auto, 3px 3px;
   mix-blend-mode: multiply;
   opacity: 0.22;
   pointer-events: none;
@@ -520,42 +579,83 @@ a {
 
 /* ---------- Stamp seal ---------- */
 
+/*
+ * Jagged sunburst badge — the "OVER $45 MILLION IN PRIZES!" black
+ * starburst seal from docs/reference/lotto-ticket-reference-board.jpg,
+ * generalized into a reusable component (src/components/StampSeal.tsx).
+ * Position (top/left/right) is NOT set here — it's owned by whichever
+ * usage class is passed in as `className` (.ticket__seal,
+ * .reveal-card__stamp, below), since the two call sites hang it off
+ * different corners.
+ *
+ * The 16-spike outline is a fixed clip-path polygon (alternating
+ * outer/inner radius points) rather than hand-picked coordinates —
+ * generated with a short throwaway script; see git history if it
+ * needs a different spike count.
+ */
 .stamp-seal {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 92px;
-  height: 92px;
-  border-radius: 50%;
-  border: 4px solid var(--color-accent);
-  outline: 2px solid var(--color-ink);
-  outline-offset: 3px;
+  width: 108px;
+  height: 108px;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  transform: rotate(-14deg);
-  background: rgba(255, 255, 255, 0.75);
-  opacity: 0.92;
+  background: var(--color-ink);
+  transform: rotate(-9deg);
   pointer-events: none;
-  z-index: 1;
+  clip-path: polygon(
+    50% 0%,
+    57.4% 12.7%,
+    69.1% 3.8%,
+    71.1% 18.4%,
+    85.4% 14.6%,
+    81.6% 28.9%,
+    96.2% 30.9%,
+    87.3% 42.6%,
+    100% 50%,
+    87.3% 57.4%,
+    96.2% 69.1%,
+    81.6% 71.1%,
+    85.4% 85.4%,
+    71.1% 81.6%,
+    69.1% 96.2%,
+    57.4% 87.3%,
+    50% 100%,
+    42.6% 87.3%,
+    30.9% 96.2%,
+    28.9% 81.6%,
+    14.6% 85.4%,
+    18.4% 71.1%,
+    3.8% 69.1%,
+    12.7% 57.4%,
+    0% 50%,
+    12.7% 42.6%,
+    3.8% 30.9%,
+    18.4% 28.9%,
+    14.6% 14.6%,
+    28.9% 18.4%,
+    30.9% 3.8%,
+    42.6% 12.7%
+  );
 }
 
-.stamp-seal span {
-  font-family: var(--font-display);
-  font-size: 0.85rem;
-  line-height: 1.1;
+.stamp-seal__text {
+  font-family: var(--font-condensed);
+  font-size: 0.75rem;
+  line-height: 1.25;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--color-accent);
+  text-align: center;
+  color: var(--color-gold-light);
+  transform: rotate(9deg); /* counter-rotate: badge is tilted, text reads level */
+  padding: 0 12px;
 }
 
 .stamp-seal--muted {
-  border-color: var(--color-ink-muted);
+  background: #2b2b2b;
 }
 
-.stamp-seal--muted span {
-  color: var(--color-ink-muted);
+.stamp-seal--muted .stamp-seal__text {
+  color: #a8a8a8;
 }
 
 /* ---------- Reveal / NotFound pages ---------- */
@@ -571,19 +671,26 @@ a {
 .reveal-card {
   width: 100%;
   max-width: 420px;
-  background-image: var(--gloss), var(--sparkle), linear-gradient(180deg, var(--color-ticket) 0%, var(--color-ticket-edge) 100%);
-  background-size: 100% 100%, var(--sparkle-size), 100% 100%;
-  background-position: 0 0, var(--sparkle-position), 0 0;
+  background: var(--ticket-bg);
   border-radius: var(--radius-lg);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.05);
-  padding: 56px 24px 32px;
+  padding: 40px 24px 32px;
   text-align: center;
   animation: pop-in 0.4s ease;
   position: relative;
-  overflow: hidden;
+  /* visible, not hidden: the stamp seal bursts past the corner, same
+     as .ticket's seal/mascot — see that rule for why. */
+  overflow: visible;
   border: 4px solid var(--color-ink);
   outline: 3px solid var(--color-gold);
   outline-offset: -10px;
+}
+
+.reveal-card__stamp {
+  position: absolute;
+  top: -18px;
+  right: -14px;
+  z-index: 4;
 }
 
 .reveal-card__mascot {
@@ -612,49 +719,53 @@ a {
   font-size: 0.7rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-accent-dark);
+  color: var(--color-cream);
+  opacity: 0.85;
 }
 
 .reveal-card__title {
   margin: 0 0 12px;
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: clamp(1.8rem, 9vw, 2.3rem);
+  line-height: 0.92;
   font-weight: 400;
+  /* Flat fill + stroke + offset shadow, not gradient-clip — see the
+     comment on .ticket__title for why. */
   color: var(--color-gold);
-  background: linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-gold) 55%, #ff8c00 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   -webkit-text-stroke: 2px var(--color-ink);
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+  text-shadow: 2px 3px 0 var(--color-red-dark);
 }
 
 .reveal-card__description {
   margin: 0 0 20px;
   font-size: 0.96rem;
   line-height: 1.5;
-  color: var(--color-ink-muted);
+  color: var(--color-cream);
 }
 
 .reveal-card__serial {
+  display: inline-block;
   margin: 0 0 20px;
-  font-family: var(--font-stamp);
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
-  color: var(--color-ink-muted);
+  padding: 3px 10px;
+  background: var(--color-ticket);
+  border: 2px solid var(--color-ink);
+  border-radius: 4px;
+  font-family: var(--font-condensed);
+  font-size: 0.7rem;
+  color: var(--color-ink);
 }
 
 .reveal-card__back {
   display: inline-block;
   font-family: var(--font-display);
   font-size: 1rem;
-  color: var(--color-ticket);
-  background: var(--color-accent);
-  border: 3px solid var(--color-ink);
+  color: var(--color-gold-light);
+  background: var(--color-ink);
+  border: 3px solid var(--color-gold);
   border-radius: 999px;
   padding: 8px 20px;
   text-decoration: none;
-  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.5);
 }
 
 .reveal-card__back:hover {

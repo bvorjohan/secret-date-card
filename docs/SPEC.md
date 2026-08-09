@@ -58,6 +58,7 @@ what's behind it, ready or not.
 | `/date/:id`  | Looks up `:id` in `dateOptions`. **No match** → redirect to `/not-found`. **Match, `status: "pending"`** → render "No Bueno" fallback (see data model above). **Match, `status: "ready"`** → render `title` + `description`. |
 | `/not-found` | Explicit 404 content, linked back to `/`. |
 | `*`          | Same NotFound component, catches any other unknown path. |
+| `/ticket-study` | Standalone fidelity study, not linked from nav — see "Lotto reference board: fidelity study" below. |
 
 There is currently no way to distinguish "this id never existed" from
 "this id was removed" — both just 404. That's fine for now since the
@@ -227,48 +228,56 @@ transition durations roughly in sync.
 
 ## Visual language
 
-The ticket reads as a **cheap, glossy gas-station scratch-off card** —
-a fast-food game-piece sheet or instant-lottery ticket, not an elegant
-vintage ticket or a tasteful deli punch card. Two earlier drafts leaned
-"admit one" and then "tasteful printed promo sheet" respectively; both
-were explicitly steered away from as too refined. This is the third,
-current direction — lean all the way into tacky. Concretely:
+The ticket reads as an **actual printed scratch-off lottery ticket** —
+modeled directly on one real example (see "Lotto reference board"
+below), not a web card wearing lottery-flavored colors. This is the
+fourth direction the visual design has been through; earlier ones
+leaned "admit one" ticket, then "tasteful printed promo sheet," then
+"cheap glossy gas-station scratcher" (candy colors, hot pink,
+sparkle/gloss texture) — each was explicitly steered away from as
+either too refined or, in the gas-station case, still not close enough
+to a real ticket once there was a real one to compare against. See the
+decision log at the bottom for the full sequence. Concretely, today:
 
-- Saturated candy-color palette (hot pink, gold, teal, purple) instead
-  of anything muted/sepia. See the `--color-*` tokens at the top of
-  `index.css`.
+- Red/orange/gold palette (`--color-*` tokens at the top of
+  `index.css`) — a radial glow + `repeating-conic-gradient` sunburst
+  (`--ticket-bg`) is the background on both `.ticket` and
+  `.reveal-card`, not a flat or gradient fill.
 - Chunky comic-style display type: **Luckiest Guy** (`--font-display`)
-  with a heavy `-webkit-text-stroke` outline + hard-offset drop shadow
-  on every headline, for that bubble-letter "WIN BIG" look. Special
-  Elite (`--font-stamp`) is kept, but demoted to only the tiny
-  legal-disclaimer-style text (serial numbers, fineprint) — real
-  cheap scratchers pair flashy headline type with tiny printed fine
-  print, and that contrast is the point.
-- A full-bleed diagonal-striped banner (`.ticket__banner`, pink/gold)
-  across the top, like a printed game-show header strip.
-- A glossy diagonal sheen (`--gloss`) and a scattered gold/pink
-  sparkle texture (`--sparkle`) layered into the card background,
-  replacing the earlier aged-paper grain — this card is laminated
-  plastic-cheap, not aged paper.
+  for headlines, **Anton** (`--font-condensed`) for badges/kickers/
+  serial numbers, both with a flat saturated fill + heavy
+  `-webkit-text-stroke` + hard-offset drop shadow (not a gradient fill
+  — see the fidelity-study note below for why that specific
+  combination was dropped). Special Elite (`--font-stamp`) is kept for
+  the tiny legal-disclaimer-style fine print — real cheap scratchers
+  pair flashy headline type with tiny printed fine print, and that
+  contrast is the point.
+- The ticket's own fixed, short headline strings arc along a shallow
+  curve (`ArcText`, `src/components/ArcText.tsx`) — the "rainbow text"
+  nearly every real scratcher headline uses.
 - Each date option is its own scratch **tab** — a small bordered
   rectangle (portrait, `aspect-ratio: 4/5`) with a **metallic silver**
-  foil (not pastel/rainbow — see "Lotto reference board" below) and a
-  slight alternating rotation per tab (`nth-child(odd/even)`), so the
-  sheet reads as loosely-printed cut-apart pieces rather than a precise
-  grid.
+  foil and a slight alternating rotation per tab
+  (`nth-child(odd/even)`), so the sheet reads as loosely-printed
+  cut-apart pieces rather than a precise grid. The whole grid sits
+  inside a bordered `.ticket__playarea` frame, echoing the "PLAY AREA"
+  box real tickets use to set the scratchable region apart from the
+  promo copy around it.
 - **The mascot sticker is deliberately huge and bursts off the card
-  edge** — `size="sm"` is 112px (was 50px in the tasteful draft),
-  positioned with negative offsets so it visually pops off the
-  top-right corner. This is why `.ticket` is `overflow: visible`
-  instead of `hidden`; `.ticket__banner` rounds its own top corners
-  (`border-radius`) instead of relying on the card to clip it. See
-  the "gotcha" note below before changing either of these.
-- `.ticket__header` carries `padding-right` to keep the title/subtitle
-  clear of the mascot's footprint — if the mascot's size or position
-  changes, that padding likely needs to change with it.
+  edge** — `size="sm"` is 112px, positioned with negative offsets so
+  it visually pops off the top-right corner, standing in for the
+  jagged starburst seal badge a real ticket would put there. This is
+  why `.ticket` and `.reveal-card` are `overflow: visible` instead of
+  `hidden` — see the "gotcha" note below before changing this.
+- `.ticket__header` carries asymmetric left/right padding to keep the
+  title clear of the price-tag badge (small, left) and the mascot
+  (large, right) — if either badge's size or position changes, that
+  padding likely needs to change with it.
 
-Two Google Fonts loaded in `index.html`: Luckiest Guy (`--font-display`)
-and Special Elite (`--font-stamp`). All styling lives in
+Three Google Fonts loaded in `index.html`: Luckiest Guy
+(`--font-display`), Anton (`--font-condensed`), and Special Elite
+(`--font-stamp`). Oswald is also loaded (used only by `/ticket-study`'s
+fine print, not by production CSS). All production styling lives in
 [`src/index.css`](../src/index.css) — there's no CSS framework or
 component library, so new UI should extend the existing custom
 properties (`--color-*`, `--radius-*`, `--font-*`) rather than
@@ -292,7 +301,12 @@ list is the sharpest version of the brief:
 > huge whitespace · generic web UI patterns · glassmorphism/blur ·
 > overly rounded components · look like a casino website
 
-Changes made in direct response to it:
+Changes made in direct response to it (first pass — kept the app's
+existing layout scaffolding, just reskinned it; **superseded by the
+fidelity-study port** described further down, which replaced several
+of these — `.ticket__header::before`, `.ticket__banner`, and the
+gradient-fill headline are gone. Left here as history, not a
+description of the current CSS):
 
 - **Silver scratch foil, not pastel/rainbow.** The board is explicit
   that scratch coating should look like real silver-scratch texture,
@@ -328,12 +342,15 @@ Changes made in direct response to it:
   it isn't clipped by `overflow: visible`, which `.ticket` needs for
   the mascot — see the overflow/clipping gotcha below.
 - **Palette expanded**: added `--color-red`/`--color-red-dark` (a true
-  red, not the existing hot-pink `--color-accent`) and `--color-lime`
-  (olive-green), matching the board's stated core palette of
-  red/gold/olive-green/teal/purple/black more closely than the
-  pink/gold/teal/purple mix alone did. Not fully wired in everywhere
-  yet — treat unused-looking color tokens here as available palette,
-  not dead code, before removing them.
+  red, distinct from the hot-pink `--color-accent` that existed at the
+  time) and `--color-lime` (olive-green), matching the board's stated
+  core palette of red/gold/olive-green/teal/purple/black more closely.
+  `--color-accent`/`--color-accent-dark` were later removed outright
+  (in the fidelity-study port, below) rather than kept as reserved
+  palette — hot pink didn't fit the adopted red/gold/black direction
+  at all, unlike `--color-teal`/`--color-purple`, which are still
+  unused but genuinely reserved: treat those two specifically as
+  available palette, not dead code, before removing them.
 
 Not (yet) attempted from the board, in case it comes up again: ribbon
 banner shapes (`Ornamentation` panel), a literal torn/rough-edged
@@ -342,11 +359,93 @@ further layout density (the board's "no empty space, information
 packed in" DO is only partially embraced — the ticket is denser than
 before but still has more breathing room than the reference examples).
 
-**Overflow/clipping gotcha:** `.ticket` is `overflow: visible` so the
-mascot can burst past its edge. That means any other child that needs
-to be clipped to the card's rounded corners (like `.ticket__banner`)
-must round its own corners rather than depending on the parent — check
-this if you add new full-bleed elements.
+**After that pass, the user judged it still far from the board and
+asked for a fidelity exercise:** reproduce one specific example from
+the board — the "Ticket Anatomy" $10 MEGA MONEY ticket — as literally
+as CSS reasonably allows, on its own page, fidelity as the only goal
+(not integration with the app's data model or design tokens). That
+lives at `/ticket-study`
+([`src/pages/TicketStudy.tsx`](../src/pages/TicketStudy.tsx),
+[`src/pages/ticketStudy.css`](../src/pages/ticketStudy.css)) — a route
+not linked from anywhere in the nav, kept around as the fidelity
+reference even after the port below, not superseded by it. It
+intentionally does **not** import `index.css` or reuse
+`--color-*`/`--halftone` tokens; every value in it was picked by
+eyeballing that one reference crop, not by extending the shared
+system. Notable techniques, worked out there first:
+
+- **Per-letter arc text**, promoted to a shared component
+  ([`src/components/ArcText.tsx`](../src/components/ArcText.tsx)):
+  CSS alone can't curve a text run, so each letter is its own
+  `<span>`, rotated + vertically offset along a shallow circle in JS.
+  Forced `white-space: nowrap` (`.arc-text` in index.css) — an
+  arc-text run is adjacent inline-block letters with no real
+  whitespace between them, so a too-wide run doesn't wrap cleanly, it
+  breaks mid-word wherever it runs out of room. Nowrap makes it
+  visibly overflow instead, which is at least honest, and matches how
+  real ticket headlines behave (sized to fit, never wrapped). Because
+  of that, `ArcText` is used for the ticket's own short, fixed
+  headline strings (`.ticket__title`, `.ticket__declare`) but
+  deliberately **not** for `.reveal-card__title`, which renders
+  arbitrary-length data from `dateOptions.ts` — that one stays plain
+  text so it can wrap normally.
+- **Flat fill color beats gradient-fill for outlined display text.**
+  The first attempt used `background-clip: text` combined with
+  `-webkit-text-stroke` for the outline — in Chromium the opaque
+  stroke dominates the paint and the gradient interior reads as
+  near-solid instead of showing through. Caught by screenshotting, not
+  by reading the CSS. All display headline/badge text in the app now
+  uses a flat, saturated fill color + stroke + a hard offset
+  `text-shadow` (no blur) for the "3D block letter" look instead.
+- **Multi-point `clip-path` polygons** for the jagged sunburst seal
+  badge and the five-point stars, generated with a short throwaway
+  script rather than hand-picked coordinates (see git history for the
+  generator) — precise and easy to regenerate at a different spike
+  count if needed.
+- Background is layered as three stacked CSS gradients on one
+  element (`--ticket-bg` in index.css): a bottom radial glow (orange
+  center → deep red edge), a `repeating-conic-gradient` sunburst on
+  top of it, and a third radial-gradient scrim (transparent → black)
+  over the bottom third just to keep fine print legible against the
+  rays — all on one `background` property, ordered first-declared-on-top.
+
+**Ported into production in two passes.** First pass reused the
+techniques above but kept the app's existing layout scaffolding
+(banner strip, perforation divider, venue fine print, mascot bursting
+a corner alongside a separate seal badge) — the user's reaction was
+that it still didn't look enough like `/ticket-study`, plus explicit
+permission to cut copy/structure that didn't earn its place. Second
+pass rebuilt `.ticket`'s markup to mirror `/ticket-study`'s DOM
+structure piece for piece instead of reskinning the old one:
+
+| `/ticket-study` | Production (`Home.tsx`) |
+|---|---|
+| `.tstudy-price` ("$10", top-left) | `.ticket__price` ("FREE", top-left) |
+| `.tstudy-seal` ("OVER $45 MILLION...", top-right) | `MascotSticker` (top-right) — the app's own personal touch stands in for a second starburst |
+| `.tstudy-mega` / `.tstudy-money` (arced 2-line headline) | `.ticket__title` × 2 ("SECRET DATE" / "BLOWOUT", arced) |
+| `.tstudy-winupto` (kicker) | `.ticket__kicker` ("Scratch one off to") |
+| `.tstudy-jackpot` (arced declaration) | `.ticket__declare` (arced "WIN A DATE!") |
+| `.tstudy-playarea` (bordered gray box) | `.ticket__playarea` (bordered box wrapping `.ticket__grid`) |
+| `.tstudy-winup20` (bold banner line) | `.ticket__banner-line` ("NEVER EXPIRES!") |
+| `.tstudy-footer` (fine print + serial) | `.ticket__footer` (two joke lines + `.ticket__serial`) |
+
+Cut entirely, since they had no equivalent in the reference and were
+diluting the composition rather than adding to it: the diagonal-stripe
+`.ticket__banner` strip, the dotted `.ticket__perforation` divider, and
+the venue-list fine print paragraph. The "Not valid after the heat
+death of the universe." joke moved from the footer's only line to a
+punchline *under* a straight-faced "NEVER EXPIRES!" banner claim — a
+bigger laugh from the same joke, and it fills the banner-line slot the
+reference structure wants filled.
+`DateReveal.tsx`/`.reveal-card` got the same background/badge/serial
+treatment but kept its own layout (it has no `/ticket-study`
+equivalent — it's a confirmation page, not a promo ticket).
+
+**Overflow/clipping gotcha:** `.ticket` and `.reveal-card` are both
+`overflow: visible` so the mascot/seal badges can burst past their
+corners. Any child that needs to be clipped to the card's rounded
+corners must round its own corners rather than depending on the
+parent — check this if you add new full-bleed elements.
 
 **Stacking order gotcha:** `ScratchPanel`'s foil overlay and its content
 are both `position: absolute; inset: 0` siblings — the foil needs

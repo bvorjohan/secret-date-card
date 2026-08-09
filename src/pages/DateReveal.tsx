@@ -50,7 +50,19 @@ export default function DateReveal({ onReveal }: DateRevealProps) {
     <main className="reveal-page">
       <div className="reveal-card">
         <StampSeal
-          text={isReady ? "Confirmed ✓" : "Denied"}
+          text={
+            isReady ? (
+              <>
+                CONFIRMED
+                <br />✓
+              </>
+            ) : (
+              <>
+                DENIED
+                <br />✗
+              </>
+            )
+          }
           tone={isReady ? "accent" : "muted"}
           className="reveal-card__stamp"
         />
@@ -62,6 +74,14 @@ export default function DateReveal({ onReveal }: DateRevealProps) {
               {option.icon}
             </span>
             <p className="reveal-card__eyebrow">You scratched off</p>
+            {/*
+              Plain text, not ArcText: unlike the ticket's hand-authored
+              headline, option.title is arbitrary content-file data (see
+              src/data/dateOptions.ts) with no length limit. ArcText
+              runs are forced nowrap (see .arc-text in index.css) so a
+              long title would just overflow the card instead of
+              wrapping — fine for a fixed short string, not for this.
+            */}
             <h1 className="reveal-card__title">{option.title}</h1>
             <p className="reveal-card__description">{option.description}</p>
           </>
