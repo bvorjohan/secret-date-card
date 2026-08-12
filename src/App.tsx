@@ -21,82 +21,81 @@ import { notifyScratched } from "./lib/notifyScratched";
  * this went from a `Set<string>` (just membership) to a
  * `Record<id, isoTimestamp>` (membership *and* when) to support
  * ScratchDate's waitDaysAfterPrevious gate. Originally shipped as a
- * deliberately new key with no migration — but that meant the very
- * first deploy of this change silently wiped whichever dates were
- * already scratched on the one real device that matters here, which
- * turned out to matter more in practice than "old array-shaped data
- * can't be misread as the new shape" mattered in theory. See
- * migrateLegacyRevealedIds below for the one-time fix.
+ * deliberately new key with no migration, which silently wiped
+ * already-scratched state on the one real device that matters here.
+ *
+ * The first fix for that only merged from the old key when the new
+ * one had *never* been written — but the buggy no-migration version
+ * had already deployed and been visited once before the fix landed,
+ * which persists an explicit "{}" under the new key via the effect
+ * below (same as a real reset does). That made the two cases
+ * indistinguishable and skipped the merge entirely — confirmed live
+ * against the deployed app: revealedDates read back as "{}" while
+ * revealedIds still had the real data sitting right there unread.
+ *
+ * Fixed properly now: loadRevealedDates always merges in any ids
+ * still sitting under the legacy key (filling in gaps, never
+ * overwriting anything already in the new key), and App() cleans the
+ * legacy key up in an effect on mount once that merge has happened.
+ * Deleting it (rather than leaving it inert) is what makes "always
+ * merge" safe to keep doing forever instead of just once: without
+ * that cleanup, a *real* future reset (which only clears the new key)
+ * would get silently undone the next time this ran, since the same
+ * legacy ids would still be sitting there to merge back in.
  */
 export const REVEALED_DATES_STORAGE_KEY = "secret-date-card:revealedDates";
 
-/** The pre-rename key (see above) — read-only from here on, only ever
- * consulted by migrateLegacyRevealedIds as a one-time fallback. Never
- * written to again. Exported (alongside REVEALED_DATES_STORAGE_KEY
- * above) so Home's storage-debug footer can read both under the same
- * key names as this file, rather than duplicating the literal
- * strings and risking drift. */
+/** The pre-rename key (see above). Only ever read by loadRevealedDates
+ * (to merge) and removed by App()'s cleanup effect — nothing writes
+ * to it anymore. Exported (alongside REVEALED_DATES_STORAGE_KEY above)
+ * so Home's storage-debug footer can read both under the same key
+ * names as this file, rather than duplicating the literal strings and
+ * risking drift. */
 export const REVEALED_IDS_STORAGE_KEY_LEGACY = "secret-date-card:revealedIds";
 
 function loadRevealedDates(): RevealedDates {
+  const current: RevealedDates = {};
   try {
     const raw = localStorage.getItem(REVEALED_DATES_STORAGE_KEY);
     if (raw) {
       const parsed: unknown = JSON.parse(raw);
-      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
-      const result: RevealedDates = {};
-      for (const [id, value] of Object.entries(parsed)) {
-        if (typeof value === "string") result[id] = value;
+      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+        for (const [id, value] of Object.entries(parsed)) {
+          if (typeof value === "string") current[id] = value;
+        }
       }
-      return result;
     }
   } catch {
     // Private browsing, storage disabled, corrupt JSON, whatever —
-    // fall back to "nothing remembered" rather than crash the app
-    // over a purely cosmetic feature. Deliberately *not* falling
-    // through to the legacy migration below: the new key existing at
-    // all (even corrupted) means this isn't a brand-new-key situation,
-    // so guessing from old data here would be more likely to surprise
-    // than help.
-    return {};
+    // fall back to "nothing remembered under the new key" rather than
+    // crash; the legacy merge below still runs on top of this either
+    // way, so a corrupt new-key value doesn't lose legacy data too.
   }
 
-  // The new key has genuinely never been written on this device —
-  // either it's brand new, or it's still running on the old
-  // `revealedIds` key from before this rename. Only reachable here,
-  // never when REVEALED_DATES_STORAGE_KEY is present-but-empty (e.g.
-  // right after the secret reset persists an explicit "{}" — see
-  // resetRevealed below), so this can't accidentally resurrect
-  // cleared state.
-  return migrateLegacyRevealedIds();
-}
-
-/**
- * One-time fallback for loadRevealedDates: if an older version of the
- * app left ids behind under the pre-rename `revealedIds` key (a plain
- * `string[]`, membership only — no timestamps existed yet), treat
- * each one as revealed *right now* rather than losing the fact that
- * they were scratched at all. "Now" isn't the *real* original reveal
- * time, so a waitDaysAfterPrevious gate downstream of a migrated entry
- * would measure from this moment, not whenever it actually happened —
- * an acceptable approximation for a one-time transition on a single
- * device, not something worth over-engineering further.
- */
-function migrateLegacyRevealedIds(): RevealedDates {
   try {
     const legacyRaw = localStorage.getItem(REVEALED_IDS_STORAGE_KEY_LEGACY);
-    if (!legacyRaw) return {};
-    const legacyParsed: unknown = JSON.parse(legacyRaw);
-    if (!Array.isArray(legacyParsed)) return {};
-    const revealedAt = new Date().toISOString();
-    const migrated: RevealedDates = {};
-    for (const id of legacyParsed) {
-      if (typeof id === "string") migrated[id] = revealedAt;
+    if (legacyRaw) {
+      const legacyParsed: unknown = JSON.parse(legacyRaw);
+      if (Array.isArray(legacyParsed)) {
+        // "Now" isn't the *real* original reveal time (the old format
+        // never recorded one) — an acceptable approximation for a
+        // one-time transition on a single device, not something worth
+        // over-engineering further. Only fills in ids missing from
+        // `current`, so this never clobbers real data already
+        // recorded under the new key.
+        const revealedAt = new Date().toISOString();
+        for (const id of legacyParsed) {
+          if (typeof id === "string" && !(id in current)) {
+            current[id] = revealedAt;
+          }
+        }
+      }
     }
-    return migrated;
   } catch {
-    return {};
+    // Corrupt legacy value — just means nothing merges from it.
   }
+
+  return current;
 }
 
 function App() {
@@ -119,6 +118,23 @@ function App() {
       // version instead of throwing.
     }
   }, [revealedDates]);
+
+  // One-time legacy cleanup — see REVEALED_DATES_STORAGE_KEY's own
+  // comment above for why this has to happen (removing the legacy key
+  // is what makes loadRevealedDates's unconditional merge safe to run
+  // on every load rather than just once). Runs after the effect above
+  // has already persisted this mount's merged revealedDates under the
+  // new key, so by the time this fires the legacy data's job is done.
+  useEffect(() => {
+    try {
+      localStorage.removeItem(REVEALED_IDS_STORAGE_KEY_LEGACY);
+    } catch {
+      // Not writable — leaves the stale key in place. Harmless: worst
+      // case, loadRevealedDates's merge (a no-op once the ids are
+      // already in the new key) just keeps re-checking it every load
+      // instead of only once.
+    }
+  }, []);
 
   const markRevealed = useCallback((option: ScratchDate) => {
     // Unlike the old Set<string> version, there's no status check

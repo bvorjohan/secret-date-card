@@ -146,17 +146,28 @@ migration, on the theory that losing previously-revealed state across
 that one upgrade was an accepted non-issue per CLAUDE.md "Built for
 one person" — but the very first deploy of the rename did exactly
 that on the one real device that mattered, which stung more in
-practice than the theory accounted for. `App.tsx`'s
-`loadRevealedDates` now has a one-time fallback
-(`migrateLegacyRevealedIds`): if `revealedDates` has genuinely never
-been written on a device (not merely empty — an explicit reset via
-Home's secret serial-number button persists `{}`, which is left
-alone), it reads the old `revealedIds` array once and seeds
-`revealedDates` from it, treating every id in it as revealed *right
-now* (the old format never recorded a real timestamp, so "now" is the
-best available guess — a downstream `waitDaysAfterPrevious` gate on a
-migrated entry measures from this moment, not the real original
-reveal). The legacy key itself is never written to again.
+practice than the theory accounted for.
+
+The first fix for that only merged from the old key when the new one
+had *never* been written — but by the time it shipped, the buggy
+no-migration version had already been visited once, which persists an
+explicit `"{}"` under the new key (same as a real reset does). That
+made "never written" and "explicitly reset" indistinguishable and
+skipped the merge entirely; confirmed live against the deployed app
+before being fixed properly. `App.tsx`'s `loadRevealedDates` now
+*always* merges any ids still sitting under the legacy `revealedIds`
+key into whatever it read from the new key — filling in gaps,
+treating each migrated id as revealed *right now* (the old format
+never recorded a real timestamp, so "now" is the best available guess
+— a downstream `waitDaysAfterPrevious` gate on a migrated entry
+measures from this moment, not the real original reveal), but never
+overwriting an id already present under the new key. `App()` then
+removes the legacy key in an effect on mount, once that merge has
+happened — deleting it (rather than leaving it inert) is what makes
+"always merge" safe to keep doing on every load instead of just once:
+without that cleanup, a real future reset (which only clears the new
+key) would get silently undone the next time the merge ran, since the
+same legacy ids would still be sitting there to merge back in.
 
 ## Scratch notification email
 
