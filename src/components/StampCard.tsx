@@ -41,7 +41,7 @@ export default function StampCard({ className = "" }: StampCardProps) {
       />
       <header className="stamp-card__header">
         <span className="stamp-card__heart" aria-hidden="true">♥</span>
-        <h1 className="stamp-card__title">Just for You</h1>
+        <h1 className="stamp-card__title">Rewards Just for You!</h1>
         <span className="stamp-card__heart" aria-hidden="true">♥</span>
       </header>
       <p className="stamp-card__value-prop">

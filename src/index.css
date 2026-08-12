@@ -1390,7 +1390,11 @@ a {
   margin: -14px auto 8px;
 }
 
-.reveal-card__no-bueno {
+/* Shared by both unavailable-reveal images (No Bueno's cat, Hold
+   Your Horses' carousel) — same sizing/placement regardless of which
+   one's showing, so renamed from the no-bueno-specific name it had
+   before Hold Your Horses existed. */
+.reveal-card__fallback-image {
   display: block;
   width: 62%;
   max-width: 220px;
@@ -1470,6 +1474,82 @@ a {
    (originally built for /stamp-card-study, now reused here — see
    src/components/StampCard.tsx).
    --------------------------------------------------------------------- */
+/* The one-shot "here's the button" nudge — see showLoyaltyHint's own
+   comment in Home.tsx for when it appears/clears and why this has to
+   be position: fixed rather than a plain in-flow element sitting
+   above .loyalty-toggle: it needs to stay on screen the whole time a
+   just-closed-the-intro visitor is scrolled anywhere on the ticket,
+   not just once they've already scrolled all the way down to it.
+
+   Nested normally inside #root (not portaled to <body> the way the
+   loyalty modal is) — a deliberate difference, not an oversight. The
+   modal needed its own independent orientation lock and had to escape
+   #root's transform entirely to get it reliably (see "Forced
+   orientation locks" below for that whole story). This is much
+   simpler: it only needs to track *whatever #root is currently
+   showing*, landscape-locked or not, so staying a normal descendant
+   and inheriting #root's own transform is exactly what's wanted, not
+   something to work around. The one known cost: WebKit doesn't
+   reliably honor a transformed ancestor as a `position: fixed`
+   descendant's containing block (the same quirk documented on the
+   modal) — in the rare case someone's actually holding the phone
+   sideways when this shows, this may stick to the true screen edge
+   instead of #root's rotated canvas on Safari. Not worth a second
+   portal+independent-lock apparatus just for a one-shot decorative
+   arrow; accepted the same way this codebase accepts similar
+   real-device rough edges elsewhere (see CLAUDE.md "Built for one
+   person"). */
+.loyalty-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  /* Column, not a row: this used to be a pill with the arrow beside
+     the text, but "Check your rewards at the bottom" wraps to 2-3
+     lines on any real phone width, and a capsule shape stretched tall
+     around wrapped text just looks like a mistake. Text stacked over
+     the arrow reads cleanly at any wrap length instead. */
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: min(180px, calc(100vw - 32px));
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: var(--color-ink);
+  border: 3px solid var(--color-gold);
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.5), 0 4px 14px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  /* Purely decorative — never eat a tap meant for whatever's
+     underneath it (a scratch row, the footer, etc). */
+  pointer-events: none;
+}
+
+.loyalty-hint__text {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  color: var(--color-gold-light);
+}
+
+.loyalty-hint__arrow {
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--color-gold-light);
+  animation: loyalty-hint-bounce 1.1s ease-in-out infinite;
+}
+
+@keyframes loyalty-hint-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
 .loyalty-toggle {
   /* No margin-top here — .ticket-page's own `gap` (see above) now
      handles the spacing below the ticket. */
@@ -1559,6 +1639,47 @@ a {
   }
 }
 
+/* The first-visit-only "you've earned a reward!" banner — see
+   Home.tsx's LOYALTY_INTRO_SEEN_KEY comment. Styled as the same dark-
+   ink/gold pill as .loyalty-toggle (the button this is announcing the
+   existence of), floated above the card like the ticket's own corner
+   badges (StampSeal, MascotSticker) rather than pushed into the
+   card's own flow, so it reads as a little flag landing on top of
+   the card, not a new permanent header row. */
+.loyalty-modal-intro {
+  position: absolute;
+  top: -34px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 18px;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--color-gold-light);
+  background: var(--color-ink);
+  border: 3px solid var(--color-gold);
+  border-radius: 999px;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  /* Delayed to start right as .loyalty-modal's own spin-in (420ms)
+     settles, rather than competing with it — "both" fill mode holds
+     it invisible for that delay instead of flashing in at 0/0.8
+     scale before the delay even starts. */
+  animation: loyalty-intro-in 380ms cubic-bezier(0.2, 0.9, 0.3, 1.4) 380ms both;
+}
+
+@keyframes loyalty-intro-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
 /* ---------------------------------------------------------------------
    Forced orientation locks — real, CSS-only locks (not per-element
    tricks): the main ticket view (#root) always renders portrait, and
@@ -1585,7 +1706,7 @@ a {
 
    The recipe (identical for both — only *which* element and *which*
    media query differs): give the element the swapped dimensions of a
-   correctly-oriented canvas (width: 100vh; height: 100vw), then
+   correctly-oriented canvas (width: 100dvh; height: 100dvw), then
    rotate(90deg) around its own top-left corner and shift it over by
    the real viewport's full width (left: 100%, which for a fixed
    element resolves against the viewport) so the rotated box lands
@@ -1594,6 +1715,19 @@ a {
    error) and confirmed via getBoundingClientRect() matching the real
    viewport's width/height exactly after transform, in both
    directions.
+
+   dvh/dvw (dynamic viewport units), not plain vh/vw: confirmed live
+   on an iPhone that plain vh/vw leaves a real gap (background peeking
+   through undimmed, box off-center) once Safari's address/toolbar bar
+   has collapsed or expanded from scrolling — vh/vw don't reliably
+   track the *currently* visible viewport there, only some fixed
+   baseline of it, so the rotated box ends up a different size than
+   the real screen. dvh/dvw are defined specifically to always match
+   whatever's actually visible, toolbar state and all. Chromium doesn't
+   have this quirk at all, which is why this wasn't caught by this
+   project's usual Playwright/Chromium screenshot verification — a real
+   reminder that "looks right in Chromium" isn't the same claim as
+   "looks right in Safari" for anything viewport-unit-related.
 
    Known limitation: CSS's `orientation` media feature only reports
    the aspect ratio, not which way the phone was physically turned
@@ -1608,8 +1742,16 @@ a {
     position: fixed;
     top: 0;
     left: 100%;
+    /* vh/vw first as a fallback for engines without dvh/dvw support
+       (Safari <15.4, Chrome <108) — an unsupported value is ignored
+       entirely rather than falling back on its own, so without this
+       first line those engines would get no width/height at all
+       instead of just the old vh/vw gap bug. The dvh/dvw line below
+       simply wins wherever it's understood. */
     width: 100vh;
+    width: 100dvh;
     height: 100vw;
+    height: 100dvw;
     transform-origin: top left;
     transform: rotate(90deg);
     /* overflow-y: auto, not hidden: the ticket's real content (6
@@ -1633,8 +1775,12 @@ a {
     right: auto;
     bottom: auto;
     left: 100%;
+    /* vh/vw fallback before dvh/dvw — see #root's matching lock
+       above for why. */
     width: 100vh;
+    width: 100dvh;
     height: 100vw;
+    height: 100dvw;
     transform-origin: top left;
     transform: rotate(90deg);
     /* right/bottom explicitly cleared to auto rather than left as

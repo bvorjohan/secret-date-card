@@ -89,7 +89,7 @@ export const scratchDates: ScratchDate[] = [
     description: "Brad's been working on food again! Maybe try some, watch a movie, even spend the night in a nice cozy bed?",
     sticker: bbq,
     waitDaysAfterPrevious: 0,
-    availableFrom: "2026-08-10"
+    availableFrom: "2026-08-14"
 
   },
   {
@@ -123,8 +123,27 @@ export function getScratchDate(id: string): ScratchDate | undefined {
 export type RevealedDates = Record<string, string>;
 
 /**
- * Whether `id` can currently be scratched off: its content has to be
- * decided (status "ready"), the entry immediately before it in
+ * Why `id` isn't scratchable right now, or that it is — the granular
+ * form behind isScratchDateAvailable below. DateReveal uses this
+ * (rather than the plain boolean) to pick which fallback to show:
+ * "time-locked" gets its own "Hold Your Horses" page (the entry is
+ * decided and in order, it's just not time yet), while "undecided"
+ * and "out-of-order" both still collapse into the vague generic "No
+ * Bueno" fallback — see DateReveal's own comment for why those two
+ * stay merged. Neither fallback exposes *which* of its collapsed
+ * reasons applies, or (for "time-locked") the actual unlock date —
+ * this is only ever used to pick a page, never rendered as text.
+ */
+export type ScratchDateGateReason =
+  | "not-found"
+  | "undecided"
+  | "out-of-order"
+  | "time-locked"
+  | "available";
+
+/**
+ * Why `id` can or can't currently be scratched off: its content has
+ * to be decided (status "ready"), the entry immediately before it in
  * `scratchDates` has to have already been revealed (this is what
  * actually enforces "in order" — satisfying it for every entry means,
  * by induction, every earlier one was too, without needing to walk
@@ -137,40 +156,50 @@ export type RevealedDates = Record<string, string>;
  * side effects — so it gives a consistent answer whether it's
  * deciding what to render on a first visit or re-checking an
  * already-revealed entry on a later one. That consistency matters:
- * once true for a given id, this must keep returning true forever
+ * once "available" for a given id, this must keep saying so forever
  * after (time only moves forward and nothing here ever re-locks) —
  * falls out naturally from being a pure function of "now" rather than
  * some separately-tracked "is this unlocked" flag that could drift.
  */
-export function isScratchDateAvailable(
+export function getScratchDateGateReason(
   id: string,
   revealedDates: RevealedDates,
   now: Date = new Date(),
-): boolean {
+): ScratchDateGateReason {
   const index = scratchDates.findIndex((entry) => entry.id === id);
-  if (index === -1) return false;
+  if (index === -1) return "not-found";
 
   const entry = scratchDates[index];
-  if (entry.status !== "ready") return false;
+  if (entry.status !== "ready") return "undecided";
 
   if (index > 0) {
     const previous = scratchDates[index - 1];
     const previousRevealedAt = revealedDates[previous.id];
-    if (!previousRevealedAt) return false;
+    if (!previousRevealedAt) return "out-of-order";
 
     const waitDays = entry.waitDaysAfterPrevious ?? 0;
     if (waitDays > 0) {
       const unlockAt = new Date(previousRevealedAt);
       unlockAt.setDate(unlockAt.getDate() + waitDays);
-      if (now < unlockAt) return false;
+      if (now < unlockAt) return "time-locked";
     }
   }
 
   if (entry.availableFrom && now < new Date(entry.availableFrom)) {
-    return false;
+    return "time-locked";
   }
 
-  return true;
+  return "available";
+}
+
+/** Whether `id` can currently be scratched off — see
+ * getScratchDateGateReason for the reasons behind a `false` here. */
+export function isScratchDateAvailable(
+  id: string,
+  revealedDates: RevealedDates,
+  now: Date = new Date(),
+): boolean {
+  return getScratchDateGateReason(id, revealedDates, now) === "available";
 }
 
 /**

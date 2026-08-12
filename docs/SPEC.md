@@ -48,49 +48,68 @@ unscratched rows — see `src/components/ScratchPanel.tsx`).
 ## Sequential gating
 
 Cards must be scratched off in `scratchDates`' array order, and each
-one can additionally be held back in time. `isScratchDateAvailable(id,
-revealedDates, now)` in `scratchDates.ts` is the single source of
-truth for "can this actually be scratched right now" — both `Home`
-(indirectly, via what `DateReveal` allows to be marked revealed) and
-`DateReveal` (directly, to decide what to render) go through it rather
-than duplicating the logic. It's a pure function of its three
-arguments — same inputs always give the same answer — which is what
-lets "already revealed, re-visiting later" and "revealing for the
-first time" share one code path with no special-casing.
+one can additionally be held back in time.
+`getScratchDateGateReason(id, revealedDates, now)` in `scratchDates.ts`
+is the single source of truth for "can this actually be scratched
+right now, and if not, why" — both `Home` (indirectly, via what
+`DateReveal` allows to be marked revealed) and `DateReveal` (directly,
+to decide what to render) go through it rather than duplicating the
+logic. `isScratchDateAvailable` is a thin boolean wrapper around it
+(`reason === "available"`) kept for call sites that only care about
+yes/no. It's a pure function of its three arguments — same inputs
+always give the same answer — which is what lets "already revealed,
+re-visiting later" and "revealing for the first time" share one code
+path with no special-casing.
 
-A `status: "ready"` entry at array index `i` is available once *all*
-of the following hold:
+A `status: "ready"` entry at array index `i` is `"available"` once
+*all* of the following hold, and otherwise reports whichever of these
+reasons applies (`"undecided"`, `"out-of-order"`, or `"time-locked"`
+— see the type's own doc comment for the full list, including
+`"not-found"`):
 
 1. The entry immediately before it (index `i - 1`) has already been
-   revealed. (This is what actually enforces "in order": since
-   satisfying it requires the previous entry to already be available-
-   and-revealed, which required *its* previous entry to be, and so on,
-   checking just the immediate predecessor is sufficient — no need to
-   walk the whole array.) The first entry (index 0) has no predecessor
-   and skips this check.
+   revealed (else `"out-of-order"`). (This is what actually enforces
+   "in order": since satisfying it requires the previous entry to
+   already be available-and-revealed, which required *its* previous
+   entry to be, and so on, checking just the immediate predecessor is
+   sufficient — no need to walk the whole array.) The first entry
+   (index 0) has no predecessor and skips this check.
 2. At least `waitDaysAfterPrevious` days (default 0 if omitted) have
-   passed since that previous entry was revealed.
-3. `now` is past `availableFrom`, if the entry has one — an absolute
-   floor independent of gate 2. Whichever of gates 2 and 3 is later
-   wins; both must hold.
+   passed since that previous entry was revealed (else
+   `"time-locked"`).
+3. `now` is past `availableFrom`, if the entry has one (else also
+   `"time-locked"`) — an absolute floor independent of gate 2.
+   Whichever of gates 2 and 3 is later wins; both must hold.
 
-**Deliberately vague on failure:** whether an entry is unavailable
-because its content isn't decided yet (`pending`), because an earlier
-entry hasn't been scratched, or because it has but the wait/absolute-
-time gate hasn't passed — `DateReveal` shows the exact same "No Bueno"
-fallback for all three, with no indication of which reason or when it
-might change. This was a deliberate choice (asked directly, chose
-"keep it vague" over "show the unlock date") to preserve the same
-"these come off in order, full stop" non-answer the original
-undecided-content fallback already had, rather than turning locked-
-but-decided entries into a countdown/spoiler.
+(A `status: "pending"` entry short-circuits to `"undecided"` before
+any of the above are checked — there's nothing for the gates to
+evaluate yet.)
+
+**Deliberately vague on failure, but not uniformly anymore.**
+`DateReveal` shows one of two fallbacks depending on the reason:
+
+- `"undecided"` or `"out-of-order"` → the original "No Bueno"
+  fallback, unchanged. These two stay deliberately merged: whether an
+  entry's content isn't decided yet, or an earlier entry just hasn't
+  been scratched, "No Bueno" gives the exact same "these come off in
+  order, full stop" non-answer either way, no hint of which reason.
+- `"time-locked"` → its own "Hold Your Horses" fallback (the
+  `carousel.png` bitmoji, "HOLD UP 🐎" stamp) — the entry *is* decided
+  and in its correct order, it's just not time yet. Still just as
+  vague about *when*: no countdown, no unlock date shown, same
+  "check back later" non-answer as No Bueno — this split only changes
+  *which* vague message you see, not how much it reveals. (Asked
+  directly, chose "keep it vague" over "show the unlock date" back
+  when this was still one fallback; that choice didn't change when
+  the fallback split in two, just got a second flavor of the same
+  non-answer.)
 
 ## Routes
 
 | Path         | Behavior |
 |--------------|----------|
 | `/`          | Renders the ticket: header + a panel per entry in `scratchDates`, in array order. |
-| `/date/:id`  | Looks up `:id` in `scratchDates`. **No match** → redirect to `/not-found`. **Available** (see "Sequential gating" above) → render `title` + `description`. **Not available**, for any reason → render "No Bueno" fallback. |
+| `/date/:id`  | Looks up `:id` in `scratchDates`. **No match** → redirect to `/not-found`. **Available** (see "Sequential gating" above) → render `title` + `description`. **"time-locked"** → render "Hold Your Horses" fallback. **"undecided"/"out-of-order"** → render "No Bueno" fallback. |
 | `/not-found` | Explicit 404 content, linked back to `/`. |
 | `*`          | Same NotFound component, catches any other unknown path. |
 | `/ticket-study` | Standalone fidelity study, not linked from nav — see "Lotto reference board: fidelity study" below. |
@@ -116,12 +135,12 @@ since `waitDaysAfterPrevious` needs to measure elapsed time *since* a
 reveal, not just its existence.
 
 - `DateReveal` calls `onReveal(option)` in a `useEffect`, but **only
-  when `isScratchDateAvailable` says the date is actually available**
-  — unlike the old version, an undecided/out-of-order/still-time-
-  gated visit is never recorded, so none of those ever falsely count
-  as "scratched." (The old "a 'No Bueno' still counts as a scratch"
-  behavior no longer applies now that "No Bueno" also covers the two
-  new gated cases, not just undecided content.)
+  when `getScratchDateGateReason` says `"available"`** — unlike the
+  old version, an undecided/out-of-order/time-locked visit is never
+  recorded, so none of those ever falsely count as "scratched." (The
+  old "a 'No Bueno' still counts as a scratch" behavior no longer
+  applies now that unavailable visits, across both fallback pages,
+  never call this at all.)
 - `Home` passes `revealed={option.id in revealedDates}` to each
   `ScratchPanel`. A panel with `revealed=true` renders straight into
   the post-scratch visual (no foil, no tap delay) and, if tapped again,
@@ -788,13 +807,20 @@ plain foil. Swap the image file to change it; no CSS/markup changes
 needed as long as the replacement is roughly square. (Briefly dropped
 during the row-layout pass for space, then restored.)
 
-The `pending`-status "No Bueno" fallback on `DateReveal` shows
+The "No Bueno" fallback (`"undecided"`/`"out-of-order"`, see
+"Sequential gating" above) on `DateReveal` shows
 `src/assets/no-bueno.png` (a personal Bitmoji sticker with "NO BUENO."
-already baked into the image as text) via `.reveal-card__no-bueno` —
-not run through `MascotSticker`, since that component's circular
-wax-seal frame would crop off the image's own text. Swap the file to
-change the visual; it doesn't need to be square (this one is a wide
-rectangle).
+already baked into the image as text); the "Hold Your Horses" fallback
+(`"time-locked"`) shows `src/assets/carousel.png` (the same bitmoji
+riding a carousel horse) instead. Both go through the shared
+`.reveal-card__fallback-image` class, not `MascotSticker` — that
+component's circular wax-seal frame would crop off no-bueno.png's own
+baked-in text, and the class is deliberately named for the *role*
+(whichever fallback image is currently showing) rather than either
+specific image, now that there are two. Swap either file to change
+that fallback's visual; neither needs to be square (no-bueno.png is a
+wide rectangle, carousel.png is roughly square but not run through
+MascotSticker either, for consistency with its sibling).
 
 Advertising/flavor copy (what the card is, in ticket-fineprint voice)
 lives inline in `Home.tsx` as `.ticket__fineprint` — short, uppercase,
