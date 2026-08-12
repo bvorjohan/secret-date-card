@@ -43,15 +43,12 @@ import { notifyScratched } from "./lib/notifyScratched";
  * would get silently undone the next time this ran, since the same
  * legacy ids would still be sitting there to merge back in.
  */
-export const REVEALED_DATES_STORAGE_KEY = "secret-date-card:revealedDates";
+const REVEALED_DATES_STORAGE_KEY = "secret-date-card:revealedDates";
 
 /** The pre-rename key (see above). Only ever read by loadRevealedDates
  * (to merge) and removed by App()'s cleanup effect — nothing writes
- * to it anymore. Exported (alongside REVEALED_DATES_STORAGE_KEY above)
- * so Home's storage-debug footer can read both under the same key
- * names as this file, rather than duplicating the literal strings and
- * risking drift. */
-export const REVEALED_IDS_STORAGE_KEY_LEGACY = "secret-date-card:revealedIds";
+ * to it anymore. */
+const REVEALED_IDS_STORAGE_KEY_LEGACY = "secret-date-card:revealedIds";
 
 function loadRevealedDates(): RevealedDates {
   const current: RevealedDates = {};

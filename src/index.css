@@ -1568,25 +1568,6 @@ a {
   transform: translateY(-1px);
 }
 
-/* Temporary debug footer — see its own comment in Home.tsx. Styled to
-   read plainly as "developer output," not part of the ticket's own
-   printed look — flat dark box, real monospace, no ticket palette. */
-.debug-storage {
-  margin: 24px auto 0;
-  max-width: min(420px, 100%);
-  padding: 10px 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.35);
-  color: #b9c2c9;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.65rem;
-  line-height: 1.4;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-x: auto;
-}
-
 .loyalty-modal-backdrop {
   /* Rendered via a React portal straight into <body> (see Home.tsx) —
      a sibling of #root, not a descendant — specifically so this can
