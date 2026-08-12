@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { scratchDates } from "../data/scratchDates";
 import type { RevealedDates } from "../data/scratchDates";
+import { REVEALED_DATES_STORAGE_KEY, REVEALED_IDS_STORAGE_KEY_LEGACY } from "../App";
 import ScratchPanel from "../components/ScratchPanel";
 import MascotSticker from "../components/MascotSticker";
 import StampSeal from "../components/StampSeal";
@@ -37,6 +38,19 @@ export default function Home({ revealedDates, onResetRevealed }: HomeProps) {
   // below the ticket — see src/components/StampCard.tsx and
   // src/data/stampDates.ts, which own the card's own content/state.
   const [showLoyaltyCard, setShowLoyaltyCard] = useState(false);
+
+  // Temporary debug footer — see the .debug-storage block near the end
+  // of this component. Legacy key is read once here (it's never
+  // written to again after migration, so it can't change under us);
+  // the current key's value is just revealedDates itself, already a
+  // prop, no separate read needed.
+  const [legacyStorageRaw] = useState(() => {
+    try {
+      return localStorage.getItem(REVEALED_IDS_STORAGE_KEY_LEGACY);
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     if (!showLoyaltyCard) return;
@@ -228,6 +242,21 @@ export default function Home({ revealedDates, onResetRevealed }: HomeProps) {
           </div>,
           document.body,
         )}
+
+      {/* Temporary debug footer — raw dump of both the current and
+          pre-rename localStorage keys, added to directly verify the
+          "lost scratched state after deploy" fix (see App.tsx's
+          migrateLegacyRevealedIds). Plainly visible, not gated behind
+          the secret reset gesture like the serial-number button above
+          — remove once it's no longer needed for checking real device
+          state. */}
+      <pre className="debug-storage">
+        {`${REVEALED_DATES_STORAGE_KEY} (current):
+${JSON.stringify(revealedDates, null, 2)}
+
+${REVEALED_IDS_STORAGE_KEY_LEGACY} (legacy):
+${legacyStorageRaw ?? "(not set)"}`}
+      </pre>
     </main>
   );
 }

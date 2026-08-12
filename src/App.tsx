@@ -28,12 +28,15 @@ import { notifyScratched } from "./lib/notifyScratched";
  * can't be misread as the new shape" mattered in theory. See
  * migrateLegacyRevealedIds below for the one-time fix.
  */
-const REVEALED_DATES_STORAGE_KEY = "secret-date-card:revealedDates";
+export const REVEALED_DATES_STORAGE_KEY = "secret-date-card:revealedDates";
 
 /** The pre-rename key (see above) — read-only from here on, only ever
  * consulted by migrateLegacyRevealedIds as a one-time fallback. Never
- * written to again. */
-const REVEALED_IDS_STORAGE_KEY_LEGACY = "secret-date-card:revealedIds";
+ * written to again. Exported (alongside REVEALED_DATES_STORAGE_KEY
+ * above) so Home's storage-debug footer can read both under the same
+ * key names as this file, rather than duplicating the literal
+ * strings and risking drift. */
+export const REVEALED_IDS_STORAGE_KEY_LEGACY = "secret-date-card:revealedIds";
 
 function loadRevealedDates(): RevealedDates {
   try {
