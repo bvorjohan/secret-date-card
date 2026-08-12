@@ -138,11 +138,25 @@ every change via a `useEffect` keyed on `revealedDates`. Both the read
 and the write are wrapped in `try/catch`: private browsing, storage
 disabled, or corrupt JSON all just fall back to "nothing remembered"
 rather than throwing — this is a cosmetic convenience, not something
-worth crashing the app over. The storage key changed (from
-`...revealedIds`) along with the shape change above; per CLAUDE.md
-"Built for one person," losing previously-revealed state across that
-one upgrade was an accepted non-issue, not something worth writing a
-migration for.
+worth crashing the app over.
+
+The storage key changed (from `...revealedIds`) along with the shape
+change above. That first shipped as a deliberately new key with no
+migration, on the theory that losing previously-revealed state across
+that one upgrade was an accepted non-issue per CLAUDE.md "Built for
+one person" — but the very first deploy of the rename did exactly
+that on the one real device that mattered, which stung more in
+practice than the theory accounted for. `App.tsx`'s
+`loadRevealedDates` now has a one-time fallback
+(`migrateLegacyRevealedIds`): if `revealedDates` has genuinely never
+been written on a device (not merely empty — an explicit reset via
+Home's secret serial-number button persists `{}`, which is left
+alone), it reads the old `revealedIds` array once and seeds
+`revealedDates` from it, treating every id in it as revealed *right
+now* (the old format never recorded a real timestamp, so "now" is the
+best available guess — a downstream `waitDaysAfterPrevious` gate on a
+migrated entry measures from this moment, not the real original
+reveal). The legacy key itself is never written to again.
 
 ## Scratch notification email
 

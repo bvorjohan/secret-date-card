@@ -20,31 +20,78 @@ import { notifyScratched } from "./lib/notifyScratched";
  * before this file was ScratchDate-based) to `...revealedDates` when
  * this went from a `Set<string>` (just membership) to a
  * `Record<id, isoTimestamp>` (membership *and* when) to support
- * ScratchDate's waitDaysAfterPrevious gate — a deliberately new key,
- * not a migration, so old array-shaped data left over from before this
- * change can't be misread as the new shape; loadRevealedDates's
- * Array.isArray guard below would reject it anyway, but a fresh key
- * makes that not even come up. Per CLAUDE.md "Built for one person":
- * losing previously-revealed state on this one upgrade is a
- * non-issue, not something worth writing a migration for.
+ * ScratchDate's waitDaysAfterPrevious gate. Originally shipped as a
+ * deliberately new key with no migration — but that meant the very
+ * first deploy of this change silently wiped whichever dates were
+ * already scratched on the one real device that matters here, which
+ * turned out to matter more in practice than "old array-shaped data
+ * can't be misread as the new shape" mattered in theory. See
+ * migrateLegacyRevealedIds below for the one-time fix.
  */
 const REVEALED_DATES_STORAGE_KEY = "secret-date-card:revealedDates";
+
+/** The pre-rename key (see above) — read-only from here on, only ever
+ * consulted by migrateLegacyRevealedIds as a one-time fallback. Never
+ * written to again. */
+const REVEALED_IDS_STORAGE_KEY_LEGACY = "secret-date-card:revealedIds";
 
 function loadRevealedDates(): RevealedDates {
   try {
     const raw = localStorage.getItem(REVEALED_DATES_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
-    const result: RevealedDates = {};
-    for (const [id, value] of Object.entries(parsed)) {
-      if (typeof value === "string") result[id] = value;
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+      const result: RevealedDates = {};
+      for (const [id, value] of Object.entries(parsed)) {
+        if (typeof value === "string") result[id] = value;
+      }
+      return result;
     }
-    return result;
   } catch {
     // Private browsing, storage disabled, corrupt JSON, whatever —
     // fall back to "nothing remembered" rather than crash the app
-    // over a purely cosmetic feature.
+    // over a purely cosmetic feature. Deliberately *not* falling
+    // through to the legacy migration below: the new key existing at
+    // all (even corrupted) means this isn't a brand-new-key situation,
+    // so guessing from old data here would be more likely to surprise
+    // than help.
+    return {};
+  }
+
+  // The new key has genuinely never been written on this device —
+  // either it's brand new, or it's still running on the old
+  // `revealedIds` key from before this rename. Only reachable here,
+  // never when REVEALED_DATES_STORAGE_KEY is present-but-empty (e.g.
+  // right after the secret reset persists an explicit "{}" — see
+  // resetRevealed below), so this can't accidentally resurrect
+  // cleared state.
+  return migrateLegacyRevealedIds();
+}
+
+/**
+ * One-time fallback for loadRevealedDates: if an older version of the
+ * app left ids behind under the pre-rename `revealedIds` key (a plain
+ * `string[]`, membership only — no timestamps existed yet), treat
+ * each one as revealed *right now* rather than losing the fact that
+ * they were scratched at all. "Now" isn't the *real* original reveal
+ * time, so a waitDaysAfterPrevious gate downstream of a migrated entry
+ * would measure from this moment, not whenever it actually happened —
+ * an acceptable approximation for a one-time transition on a single
+ * device, not something worth over-engineering further.
+ */
+function migrateLegacyRevealedIds(): RevealedDates {
+  try {
+    const legacyRaw = localStorage.getItem(REVEALED_IDS_STORAGE_KEY_LEGACY);
+    if (!legacyRaw) return {};
+    const legacyParsed: unknown = JSON.parse(legacyRaw);
+    if (!Array.isArray(legacyParsed)) return {};
+    const revealedAt = new Date().toISOString();
+    const migrated: RevealedDates = {};
+    for (const id of legacyParsed) {
+      if (typeof id === "string") migrated[id] = revealedAt;
+    }
+    return migrated;
+  } catch {
     return {};
   }
 }
