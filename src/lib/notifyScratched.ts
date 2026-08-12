@@ -1,4 +1,4 @@
-import type { DateOption } from "../data/dateOptions";
+import type { ScratchDate } from "../data/scratchDates";
 
 /**
  * Fires a Netlify Forms submission when a real (non-"No Bueno") date
@@ -13,7 +13,7 @@ import type { DateOption } from "../data/dateOptions";
  * Best-effort: a failed/blocked request here should never break the
  * reveal page, so errors are swallowed.
  */
-export function notifyScratched(option: DateOption): void {
+export function notifyScratched(option: ScratchDate): void {
   const body = new URLSearchParams({
     "form-name": "scratch-reveal",
     id: option.id,

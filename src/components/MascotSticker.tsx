@@ -6,8 +6,8 @@ interface MascotStickerProps {
   caption?: string;
   className?: string;
   /**
-   * Overrides the default bitmoji — used for a `DateOption`'s
-   * per-event `sticker` (see src/data/dateOptions.ts). Falls back to
+   * Overrides the default bitmoji — used for a `ScratchDate`'s
+   * per-event `sticker` (see src/data/scratchDates.ts). Falls back to
    * mascot-sticker.png when omitted, which is the only case on the
    * ticket itself (the corner badge always uses the default); the
    * reveal page is what actually varies this per date.
@@ -20,7 +20,7 @@ interface MascotStickerProps {
  * sticker. To swap the *default* picture (used everywhere `src` isn't
  * passed), replace src/assets/mascot-sticker.png with another roughly-
  * square image — nothing else needs to change. For a one-off swap on a
- * single date's reveal page instead, use `DateOption.sticker`, not this.
+ * single date's reveal page instead, use `ScratchDate.sticker`, not this.
  */
 export default function MascotSticker({
   size = "sm",

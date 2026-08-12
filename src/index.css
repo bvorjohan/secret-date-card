@@ -33,6 +33,15 @@
   --color-blue-dark: #1f3f78;
   --color-green: #2e8b3d;
   --color-green-dark: #1d6b2a;
+  /* Added for the /stamp-card-study prototype (docs/reference/
+     punch-stamp-rewards-card-design-guide.png) — a kraft-paper/ink-
+     stamp direction, distinct enough from the scratch-ticket palette
+     above that it needs its own two colors. Not used outside that
+     route yet; --color-ink/--color-ticket/--color-ink-muted already
+     cover the guide's "ink black"/"cream paper" and get reused as-is. */
+  --color-kraft: #a98b6c;
+  --color-kraft-dark: #8a6f52;
+  --color-stamp-red: #b4433c;
 
   --radius-lg: 14px;
   --radius-md: 8px;
@@ -116,10 +125,28 @@ a {
 /* ---------- Ticket page (Home) ---------- */
 
 .ticket-page {
-  min-height: 100dvh;
+  /* min-height: 100% (of the html/body/#root chain, all explicitly
+     height: 100% above), not 100dvh — 100dvh always measures the
+     *real* viewport, ignoring #root's own box entirely, which broke
+     badly the moment the forced-orientation lock further down starts
+     giving #root a deliberately-swapped, not-real-viewport-shaped
+     box: this would demand its real full (portrait) height inside a
+     box explicitly sized to the (landscape) width instead, overflow
+     it, and get clipped by #root's overflow: hidden. 100% correctly
+     tracks whatever #root's current effective height actually is,
+     locked or not. */
+  min-height: 100%;
   display: flex;
+  /* column, not the implicit row default: this used to have only one
+     child (.ticket), so direction never mattered — align-items +
+     justify-content centered it either way. Adding .loyalty-toggle as
+     a sibling exposed it: row direction put the button *beside* the
+     ticket (squeezed into a narrow flex item, wrapping its text
+     across several lines) instead of below it. */
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 20px;
   padding: 24px 16px;
 }
 
@@ -1321,7 +1348,11 @@ a {
 /* ---------- Reveal / NotFound pages ---------- */
 
 .reveal-page {
-  min-height: 100dvh;
+  /* min-height: 100%, not 100dvh — see .ticket-page's comment above,
+     same reasoning (this page is also subject to the forced-
+     orientation "always portrait" lock, since that rule targets any
+     page's #root, not just Home's). */
+  min-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1430,4 +1461,406 @@ a {
 
 .reveal-card__back:hover {
   transform: translateY(-1px);
+}
+
+/* ---------------------------------------------------------------------
+   Home's loyalty stamp card modal — the "★ Check your loyalty card ★"
+   button below the ticket, and the dimmed overlay it opens. The card
+   markup/styling itself is the shared .stamp-card block further down
+   (originally built for /stamp-card-study, now reused here — see
+   src/components/StampCard.tsx).
+   --------------------------------------------------------------------- */
+.loyalty-toggle {
+  /* No margin-top here — .ticket-page's own `gap` (see above) now
+     handles the spacing below the ticket. */
+  padding: 10px 22px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--color-gold-light);
+  background: var(--color-ink);
+  border: 3px solid var(--color-gold);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+.loyalty-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.loyalty-modal-backdrop {
+  /* Rendered via a React portal straight into <body> (see Home.tsx) —
+     a sibling of #root, not a descendant — specifically so this can
+     use plain position: fixed against the *real* viewport with zero
+     dependency on #root or its own "Forced orientation lock" below.
+     The two locks (this one, and #root's) are fully independent; see
+     the portal's own comment in Home.tsx for why that independence is
+     the point, not an accident. */
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 100;
+}
+
+.loyalty-modal {
+  position: relative;
+  /* Matches .stamp-card's own width below — widened from 340 to 400
+     (closer to .ticket's own 420px cap) so it fills more of the
+     screen and gives longer reward text more room, rather than
+     wrapping to 3+ lines inside a cramped circle. */
+  width: min(400px, 100%);
+  /* A 90° spin down to rest, zooming up at the same time — pure
+     decorative flourish now, not load-bearing for orientation (the
+     whole-screen lock below handles "you have to view this sideways"
+     on its own; by the time this card is rendering, the canvas around
+     it is already correctly oriented). A full 360° turn read as too
+     much/disorienting on top of that already-locked canvas — 90° is
+     a quick, readable twist instead of a full spin. Back-out easing
+     for a little overshoot past 0 before settling, matching the
+     app's other reveal moments (scratch-off, ribbon pop-ins); 420ms
+     so the spin actually reads as a spin, not a blur. No `forwards`
+     needed — the end keyframe (rotate(0) scale(1)) already matches
+     the un-animated resting state, so there's nothing to hold onto
+     after it finishes. */
+  animation: loyalty-modal-in 420ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+@keyframes loyalty-modal-in {
+  from {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Forced orientation locks — real, CSS-only locks (not per-element
+   tricks): the main ticket view (#root) always renders portrait, and
+   the loyalty card modal (.loyalty-modal-backdrop, portaled into
+   <body> — see Home.tsx) always renders the opposite, landscape,
+   regardless of how the phone is actually being held. These are two
+   completely independent rules on two unrelated elements — #root's
+   lock doesn't know or care whether the modal is open, and the
+   modal's lock doesn't know or care what #root is doing. (An earlier
+   version coupled them — one #root lock that flipped direction based
+   on a .loyalty-open class — which broke because the modal lived
+   *inside* #root and depended on being "contained" by #root's
+   transform to rotate along with it: a real CSS Transforms spec rule
+   that Chromium honors but that WebKit/Safari is known not to
+   reliably honor. Splitting them onto two structurally-unrelated
+   elements removes that dependency entirely instead of working around
+   it.)
+
+   The JS Screen Orientation *lock* API can't do this reliably (no
+   Safari/iOS support at all, gated behind fullscreen on most
+   Chromium), so both of these fake it in pure CSS: whenever the real
+   viewport's orientation doesn't match what a given element wants,
+   rotate + reshape it so it renders exactly as if it did.
+
+   The recipe (identical for both — only *which* element and *which*
+   media query differs): give the element the swapped dimensions of a
+   correctly-oriented canvas (width: 100vh; height: 100vw), then
+   rotate(90deg) around its own top-left corner and shift it over by
+   the real viewport's full width (left: 100%, which for a fixed
+   element resolves against the viewport) so the rotated box lands
+   exactly back over the real viewport instead of hanging off to one
+   side. Worked out by hand (rotation-matrix algebra, not trial and
+   error) and confirmed via getBoundingClientRect() matching the real
+   viewport's width/height exactly after transform, in both
+   directions.
+
+   Known limitation: CSS's `orientation` media feature only reports
+   the aspect ratio, not which way the phone was physically turned
+   (landscape-primary vs -secondary) — that distinction needs the same
+   unreliable Screen Orientation API this is working around. This
+   picks the far more common "turn clockwise" direction; a phone
+   rotated the other way will see this upside-down. Left as a known
+   tradeoff rather than pulled in the unreliable API for the other
+   half of the fix. */
+@media screen and (orientation: landscape) {
+  #root {
+    position: fixed;
+    top: 0;
+    left: 100%;
+    width: 100vh;
+    height: 100vw;
+    transform-origin: top left;
+    transform: rotate(90deg);
+    /* overflow-y: auto, not hidden: the ticket's real content (6
+       scratch rows, header, footer) is taller than one screen even
+       normally — that's why it's scrollable to begin with. #root's
+       local box here is deliberately sized to the *other* dimension
+       (the real viewport's shorter side), so it's almost always
+       shorter than that content, and "hidden" would silently strand
+       everything past the fold with no way to reach it. Scrolling a
+       rotated box is a known rough edge of this technique — the
+       gesture direction won't always feel intuitive relative to the
+       rotation — but that's a minor annoyance, not "some rows are
+       unreachable," which is what `hidden` would do instead. */
+    overflow-y: auto;
+  }
+}
+
+@media screen and (orientation: portrait) {
+  .loyalty-modal-backdrop {
+    top: 0;
+    right: auto;
+    bottom: auto;
+    left: 100%;
+    width: 100vh;
+    height: 100vw;
+    transform-origin: top left;
+    transform: rotate(90deg);
+    /* right/bottom explicitly cleared to auto rather than left as
+       inset: 0's leftovers — with left/width/top/height all set too,
+       an over-constrained fixed box is supposed to resolve this the
+       same way per spec (ignoring right/bottom), but doing it
+       explicitly here isn't relying on that being handled identically
+       everywhere. No overflow-y: auto needed here unlike #root's lock
+       above — the modal card is small and centered by this backdrop's
+       own flexbox, nowhere near tall enough to need scrolling inside
+       the rotated box the way the whole ticket does. */
+  }
+}
+
+.loyalty-modal-close {
+  position: absolute;
+  /* z-index: 1, not auto: .stamp-card (later in the DOM, right below
+     this button) has its own z-index: 0 — set for an unrelated reason,
+     see its rule further down — which put both elements in the same
+     explicit stacking layer and let .stamp-card's later DOM position
+     win, painting over this button and eating its clicks entirely. */
+  z-index: 1;
+  top: -14px;
+  right: -14px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--color-gold-light);
+  background: var(--color-ink);
+  border: 2px solid var(--color-gold);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ---------------------------------------------------------------------
+   .stamp-card and friends — the loyalty stamp card itself
+   (src/components/StampCard.tsx, driven by src/data/stampDates.ts),
+   shared by the bare /stamp-card-study preview page (.stamp-study-page
+   below) and Home's loyalty modal (.loyalty-modal above). Renamed from
+   .punch-card/"punch card" — same card, renamed alongside the
+   PunchCard -> StampCard component rename (stamps now carry their own
+   reward text instead of icons + a collective "10th one's free"
+   mechanic). Reference: docs/reference/punch-stamp-rewards-card-
+   design-guide.png ("Punch/Stamp Rewards Card Design Guide") — file
+   kept its original name, still the same source image. Kraft-paper/
+   ink-stamp direction, a deliberate departure from the scratch-ticket
+   look above. Reuses --color-ink/--color-ticket/--color-ink-muted/
+   --font-condensed/--font-body from the shared palette; --color-kraft/
+   --color-kraft-dark/--color-stamp-red (declared with the rest of the
+   palette above) are new and scoped to the stamp card only.
+   --------------------------------------------------------------------- */
+.stamp-study-page {
+  /* min-height: 100%, not 100dvh — see .ticket-page's comment. */
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--color-bg);
+}
+
+.stamp-card {
+  position: relative;
+  /* Widened from 340 to 400 — see .loyalty-modal's matching comment. */
+  width: min(400px, 100%);
+  background: var(--color-ticket);
+  border-radius: var(--radius-md);
+  padding: 24px 22px 22px;
+  /* The original inset highlight plus a real drop shadow underneath —
+     without it the card read as flat artwork pasted on the modal/page
+     background rather than a physical object sitting on top of it.
+     (A kraft-colored strip peeking out below used to do this job
+     instead — dropped because its straight edges, combined with an
+     earlier version of this card that tilted a few degrees, read as
+     a smudged glitch along the bottom edge rather than card
+     thickness; this shadow alone reads as "lifted off the surface"
+     more cleanly, and stays orthogonal — no rotation.) */
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.08) inset,
+    0 10px 18px rgba(0, 0, 0, 0.28);
+}
+
+/* The personal touch, printed into the card rather than stuck onto
+   it: src/assets/stamp.png (the bitmoji mid-stamp with a heart)
+   rendered large, faded, and tinted toward the card's own ink-red/
+   kraft-brown palette so it reads as part of the stock's own print,
+   not a full-color photo sitting on top of it. Sepia + hue-rotate +
+   saturate pulls its natural skin/black-coat/pink-heart colors into
+   that palette; the low opacity keeps it from ever competing with the
+   stamp grid or copy on top of it. Positioned fully inside the card's
+   own box (no negative offsets) since .stamp-card doesn't clip its
+   own overflow — anything hanging off the edge would render
+   uncropped past the card's rounded corner instead of looking printed
+   onto the stock. */
+.stamp-card__watermark {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 168px;
+  opacity: 0.16;
+  transform: rotate(9deg);
+  filter: sepia(1) saturate(3) hue-rotate(-24deg) brightness(0.65);
+  pointer-events: none;
+}
+
+.stamp-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 4px;
+}
+
+.stamp-card__heart {
+  color: var(--color-stamp-red);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.stamp-card__title {
+  margin: 0;
+  font-family: var(--font-condensed);
+  font-size: 1.9rem;
+  letter-spacing: 0.02em;
+  color: var(--color-ink);
+}
+
+.stamp-card__value-prop {
+  margin: 0 0 20px;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-ink-muted);
+}
+
+.stamp-card__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.stamp-card__stamp {
+  position: relative;
+  aspect-ratio: 1;
+  /* min-width: 0 overrides the grid-item default of min-width: auto,
+     which otherwise refuses to let this cell shrink below its
+     content's *unwrapped* intrinsic width — meaning one long reward
+     string (see .stamp-card__reward's own line-clamp below) would
+     force this whole 5-column `1fr` track wider, and every other
+     column right along with it, well past the card's own edge. Found
+     by measuring: every stamp's rendered width was ~73-82px against
+     an expected ~53px, and the whole row's total width exceeded the
+     grid's own box by exactly that same margin — the signature of
+     this exact gotcha, not a sizing mistake elsewhere. */
+  min-width: 0;
+  border-radius: 50%;
+  border: 1.5px dashed var(--color-ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  opacity: 0.5;
+}
+
+.stamp-card__stamp.is-earned {
+  border: none;
+  background-color: var(--color-stamp-red);
+  color: var(--color-cream);
+  opacity: 1;
+  /* An irregular "hand-stamped" blob outline instead of a perfectly
+     mechanical circle — four asymmetric corner-radius pairs (the
+     classic CSS "organic blob" trick), pushed well past a subtle
+     wobble (an early pass at ~3-7% off 50% was too close to a plain
+     circle to actually read as irregular at this size) so it's
+     unmistakable even at ~55px. Filled solid (not just outlined) so
+     it reads as actual stamped ink rather than a ring — the reward
+     text sits in cream/white on top of it. The nth-child rules below
+     vary the shape/tilt/color per stamp so they don't all look
+     identical. */
+  border-radius: 62% 38% 55% 45% / 40% 65% 35% 60%;
+}
+
+/* Per-stamp tilt, position nudge, blob shape, and ink-color variance
+   — cycled deterministically by grid position (nth-child, not
+   randomized) so it's stable across re-renders and screenshots,
+   rather than authored per entry in stampDates.ts, keeping that data
+   file free of styling concerns. */
+.stamp-card__stamp.is-earned:nth-child(4n+1) {
+  transform: rotate(-11deg) translate(2px, -3px);
+  border-radius: 58% 42% 63% 37% / 46% 60% 40% 54%;
+}
+
+.stamp-card__stamp.is-earned:nth-child(4n+2) {
+  transform: rotate(9deg) translate(-3px, 2px);
+  background-color: #932c22;
+  border-radius: 40% 60% 38% 62% / 58% 44% 56% 42%;
+}
+
+.stamp-card__stamp.is-earned:nth-child(4n+3) {
+  transform: rotate(-6deg) translate(3px, 3px);
+  border-radius: 45% 55% 60% 40% / 62% 38% 55% 45%;
+}
+
+.stamp-card__stamp.is-earned:nth-child(4n) {
+  transform: rotate(13deg) translate(-2px, -3px);
+  background-color: #cc6650;
+  border-radius: 56% 44% 39% 61% / 44% 58% 42% 56%;
+}
+
+/* The reward text itself — stamped in place of what used to be an
+   icon. Small/condensed/uppercase since it has to fit inside a circle
+   maybe 55-60px across (see StampDate.reward's own doc comment on
+   keeping reward text short); line-height tight enough that 2-3 lines
+   still fit without touching the border. color: inherit (not a fixed
+   value) so the text matches whichever ink-color variant its own
+   stamp landed on above. Clamped to 3 lines with an ellipsis rather
+   than trusting every entry to honor "keep it short" — an
+   unexpectedly long reward string would otherwise force this stamp,
+   and via CSS Grid's row-sizing, its whole row of siblings, taller
+   than the rest. */
+.stamp-card__reward {
+  font-family: var(--font-condensed);
+  font-size: 0.6rem;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-align: center;
+  color: inherit;
+  /* width: 100% + min-width: 0 — this is itself a flex item (child of
+     .stamp-card__stamp's flex centering), so it has the exact same
+     min-width: auto problem its parent does above: without an
+     explicit bounded width, -webkit-line-clamp has nothing to wrap
+     against and the browser sizes it to the text's full single-line
+     width instead of clamping it. */
+  width: 100%;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

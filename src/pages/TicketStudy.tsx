@@ -11,7 +11,7 @@ import ArcText from "../components/ArcText";
  * production ticket (Home.tsx) is from the reference, one specific
  * real example reproduced as literally as CSS reasonably allows.
  * Every string/number here is copied straight off the reference
- * image, not app content — don't hook dateOptions up to this.
+ * image, not app content — don't hook scratchDates up to this.
  *
  * Scoped to its own stylesheet (ticketStudy.css) instead of
  * index.css on purpose, so this experiment can't drift the shared

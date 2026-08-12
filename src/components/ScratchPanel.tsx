@@ -1,13 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import type { DateOption } from "../data/dateOptions";
+import type { ScratchDate } from "../data/scratchDates";
 import scratchCatIcon from "../assets/scratch-cat-icon.png";
 
 /** How long the reveal animation plays before we navigate to the route. */
 const REVEAL_DELAY_MS = 550;
 
 interface ScratchPanelProps {
-  option: DateOption;
+  option: ScratchDate;
   /** 1-based position on the sheet — the "CHANCE #n" tab label, and
    *  (via nth-child in CSS) which color the tab cycles to. */
   piece: number;
@@ -29,7 +29,7 @@ interface ScratchPanelProps {
  * a single centered icon with empty space on either side.
  *
  * If `revealed` is already true (this id was visited earlier this
- * session — see App.tsx's revealedIds), the row renders straight into
+ * session — see App.tsx's revealedDates), the row renders straight into
  * the post-scratch visual with no delay: tapping it just re-navigates
  * immediately, there's nothing left to "reveal."
  *

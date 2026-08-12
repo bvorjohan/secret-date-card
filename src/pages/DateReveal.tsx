@@ -1,59 +1,71 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useEffect } from "react";
-import { getDateOption, getSerialNumber } from "../data/dateOptions";
-import type { DateOption } from "../data/dateOptions";
+import {
+  getScratchDate,
+  getSerialNumber,
+  isScratchDateAvailable,
+} from "../data/scratchDates";
+import type { RevealedDates, ScratchDate } from "../data/scratchDates";
 import MascotSticker from "../components/MascotSticker";
 import StampSeal from "../components/StampSeal";
 import noBueno from "../assets/no-bueno.png";
 
 interface DateRevealProps {
+  /** id -> when it was first revealed — see isScratchDateAvailable. */
+  revealedDates: RevealedDates;
   /**
-   * For a "ready" date: marks it scratched (so the ticket shows it
-   * revealed if you navigate back) and, the first time it's revealed
-   * this session, triggers the scratch-notification email (see
-   * src/lib/notifyScratched.ts). Pending dates are reported here too
-   * but deliberately don't stick — see App.tsx's markRevealed. Takes
-   * the full option (not just the id) because both of those decisions
-   * need `status`.
+   * Marks a date scratched (so the ticket shows it revealed if you
+   * navigate back) and, the first time, triggers the scratch-
+   * notification email (see src/lib/notifyScratched.ts). Only called
+   * when this route's own isScratchDateAvailable check says the date
+   * is actually available right now — an undecided (status
+   * "pending"), out-of-sequence, or still-time-gated visit never
+   * calls this, so none of those ever stick as "revealed." Takes the
+   * full ScratchDate (not just the id) because notifyScratched needs
+   * `title`.
    */
-  onReveal: (option: DateOption) => void;
+  onReveal: (option: ScratchDate) => void;
 }
 
 /**
  * The reveal route: /date/:id
  *
- * Three possible outcomes, based on the looked-up DateOption:
- *  - no match for :id            -> redirect to the 404 page
- *  - match with status "pending" -> "No Bueno" fallback (see below):
- *    dates are meant to be scratched off in order, so a not-yet-written
- *    slot always reads as "too early," not "broken" or "coming soon."
- *  - match with status "ready"   -> full title/description reveal
+ * Three possible outcomes, based on the looked-up ScratchDate:
+ *  - no match for :id     -> redirect to the 404 page
+ *  - not available        -> "No Bueno" fallback (see below). Covers
+ *    three different reasons — content not decided yet (status
+ *    "pending"), an earlier date in the sequence hasn't been
+ *    scratched yet, or it has but waitDaysAfterPrevious/availableFrom
+ *    hasn't passed — but deliberately shows the *same* vague fallback
+ *    for all three (see isScratchDateAvailable in scratchDates.ts).
+ *    Dates are meant to be scratched off in order and on their own
+ *    schedule, so an unavailable slot always reads as "too early," no
+ *    hint of which reason or when it'll change.
+ *  - available             -> full title/description reveal
  */
-export default function DateReveal({ onReveal }: DateRevealProps) {
+export default function DateReveal({ revealedDates, onReveal }: DateRevealProps) {
   const { id } = useParams<{ id: string }>();
-  const option = id ? getDateOption(id) : undefined;
+  const option = id ? getScratchDate(id) : undefined;
+  const available = option ? isScratchDateAvailable(option.id, revealedDates) : false;
 
   useEffect(() => {
-    if (option) {
+    if (option && available) {
       onReveal(option);
     }
-    // Still called for pending ids — onReveal (App.tsx) is what
-    // decides pending doesn't stick on the home ticket; this route
-    // doesn't need to know that, it just reports what was visited.
-  }, [option, onReveal]);
+    // Deliberately NOT called when unavailable, for any of the three
+    // reasons above — see onReveal's own doc comment on DateRevealProps.
+  }, [option, available, onReveal]);
 
   if (!option) {
     return <Navigate to="/not-found" replace />;
   }
-
-  const isReady = option.status === "ready";
 
   return (
     <main className="reveal-page">
       <div className="reveal-card">
         <StampSeal
           text={
-            isReady ? (
+            available ? (
               <>
                 WINNER
                 <br />✓
@@ -65,11 +77,11 @@ export default function DateReveal({ onReveal }: DateRevealProps) {
               </>
             )
           }
-          tone={isReady ? "accent" : "muted"}
+          tone={available ? "accent" : "muted"}
           className="reveal-card__stamp"
         />
 
-        {isReady ? (
+        {available ? (
           <>
             <MascotSticker
               size="lg"
@@ -80,7 +92,7 @@ export default function DateReveal({ onReveal }: DateRevealProps) {
             {/*
               Plain text, not ArcText: unlike the ticket's hand-authored
               headline, option.title is arbitrary content-file data (see
-              src/data/dateOptions.ts) with no length limit. ArcText
+              src/data/scratchDates.ts) with no length limit. ArcText
               runs are forced nowrap (see .arc-text in index.css) so a
               long title would just overflow the card instead of
               wrapping — fine for a fixed short string, not for this.

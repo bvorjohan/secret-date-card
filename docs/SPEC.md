@@ -14,51 +14,87 @@ already "scratched off."
 
 ## Data model
 
-Defined in [`src/data/dateOptions.ts`](../src/data/dateOptions.ts).
-This array is the single source of truth for what's on the ticket —
-adding a slot means adding an entry here, nothing else.
+Defined in [`src/data/scratchDates.ts`](../src/data/scratchDates.ts).
+This array (`scratchDates`) is the single source of truth for what's
+on the ticket — adding a slot means adding an entry here, nothing
+else. (Renamed from `dateOptions`/`DateOption` — the "single end user"
+note in CLAUDE.md is why a rename like this was worth just doing
+rather than treated as too disruptive to bother with.)
 
 ```ts
-interface DateOption {
-  id: string;              // URL-safe, unique, used as /date/:id
-  teaser: string;          // shown on the un-scratched panel
-  icon: string;             // emoji shown on the panel and reveal card
+interface ScratchDate {
+  id: string;                    // URL-safe, unique, used as /date/:id
   status: "ready" | "pending";
-  title?: string;           // required if status === "ready"
-  description?: string;     // required if status === "ready"
+  title?: string;                 // required if status === "ready"
+  description?: string;           // required if status === "ready"
+  sticker?: string;                // optional per-event reveal-page sticker override
+  waitDaysAfterPrevious?: number;  // sequential gate #1, see below
+  availableFrom?: string;          // sequential gate #2, see below (ISO date/time)
 }
 ```
 
-- `status: "ready"` — the date is fully planned. The reveal page shows
-  `title` and `description`.
+- `status: "ready"` — the date's content is fully planned (`title` +
+  `description` exist). Whether it's actually *scratchable* yet is a
+  separate question — see "Sequential gating" below.
 - `status: "pending"` — the slot exists on the ticket (so the ticket
-  doesn't look sparse/incomplete) but the date itself isn't planned
-  yet. The reveal page shows the **"No Bueno" fallback** instead of
-  real content — a rejection, not a "coming soon": the framing is that
-  dates are meant to be scratched off in order, so this one just isn't
-  "up yet," full stop, no promise of when. This is the mechanism for
-  shipping the ticket before every date is decided.
-  - This is flavor/framing only — there's no actual enforcement of
-    scratch order (no session state, no tracking of which tabs have
-    been visited). Every `pending` id shows the same "No Bueno"
-    fallback regardless of which other ids have been viewed. If real
-    sequential gating is ever wanted, that's a materially bigger
-    feature (needs persisted state, e.g. localStorage) — don't assume
-    it's already there.
+  doesn't look sparse/incomplete) but the content itself isn't written
+  yet. Always shows the "No Bueno" fallback, unconditionally — there's
+  nothing for the gates below to evaluate.
 
-`teaser` and `icon` are the only things shown before a panel is
-scratched — keep `teaser` vague/playful, it's meant to *not* give away
-what's behind it, ready or not.
+There's no `teaser`/`icon` field (an earlier version of this doc
+described one; ScratchPanel now shows `option.title` directly on
+unscratched rows — see `src/components/ScratchPanel.tsx`).
+
+## Sequential gating
+
+Cards must be scratched off in `scratchDates`' array order, and each
+one can additionally be held back in time. `isScratchDateAvailable(id,
+revealedDates, now)` in `scratchDates.ts` is the single source of
+truth for "can this actually be scratched right now" — both `Home`
+(indirectly, via what `DateReveal` allows to be marked revealed) and
+`DateReveal` (directly, to decide what to render) go through it rather
+than duplicating the logic. It's a pure function of its three
+arguments — same inputs always give the same answer — which is what
+lets "already revealed, re-visiting later" and "revealing for the
+first time" share one code path with no special-casing.
+
+A `status: "ready"` entry at array index `i` is available once *all*
+of the following hold:
+
+1. The entry immediately before it (index `i - 1`) has already been
+   revealed. (This is what actually enforces "in order": since
+   satisfying it requires the previous entry to already be available-
+   and-revealed, which required *its* previous entry to be, and so on,
+   checking just the immediate predecessor is sufficient — no need to
+   walk the whole array.) The first entry (index 0) has no predecessor
+   and skips this check.
+2. At least `waitDaysAfterPrevious` days (default 0 if omitted) have
+   passed since that previous entry was revealed.
+3. `now` is past `availableFrom`, if the entry has one — an absolute
+   floor independent of gate 2. Whichever of gates 2 and 3 is later
+   wins; both must hold.
+
+**Deliberately vague on failure:** whether an entry is unavailable
+because its content isn't decided yet (`pending`), because an earlier
+entry hasn't been scratched, or because it has but the wait/absolute-
+time gate hasn't passed — `DateReveal` shows the exact same "No Bueno"
+fallback for all three, with no indication of which reason or when it
+might change. This was a deliberate choice (asked directly, chose
+"keep it vague" over "show the unlock date") to preserve the same
+"these come off in order, full stop" non-answer the original
+undecided-content fallback already had, rather than turning locked-
+but-decided entries into a countdown/spoiler.
 
 ## Routes
 
 | Path         | Behavior |
 |--------------|----------|
-| `/`          | Renders the ticket: header + a panel per entry in `dateOptions`, in array order. |
-| `/date/:id`  | Looks up `:id` in `dateOptions`. **No match** → redirect to `/not-found`. **Match, `status: "pending"`** → render "No Bueno" fallback (see data model above). **Match, `status: "ready"`** → render `title` + `description`. |
+| `/`          | Renders the ticket: header + a panel per entry in `scratchDates`, in array order. |
+| `/date/:id`  | Looks up `:id` in `scratchDates`. **No match** → redirect to `/not-found`. **Available** (see "Sequential gating" above) → render `title` + `description`. **Not available**, for any reason → render "No Bueno" fallback. |
 | `/not-found` | Explicit 404 content, linked back to `/`. |
 | `*`          | Same NotFound component, catches any other unknown path. |
 | `/ticket-study` | Standalone fidelity study, not linked from nav — see "Lotto reference board: fidelity study" below. |
+| `/stamp-card-study` | Bare preview of the loyalty stamp card, not linked from nav — see "Loyalty stamp card" below. |
 
 There is currently no way to distinguish "this id never existed" from
 "this id was removed" — both just 404. That's fine for now since the
@@ -66,34 +102,47 @@ data file is the only source of truth and there's no persistence.
 
 ## Session state: "already scratched" tabs
 
-`App.tsx` holds `revealedIds: Set<string>` (plain `useState`, no
-context library, no storage API) and a `markRevealed(id)` setter,
-passed down to `Home` and `DateReveal` as props — not lifted into a
-context, since the prop-drilling depth here is exactly one level each
-way and a context would be pure ceremony.
+`App.tsx` holds `revealedDates: RevealedDates` (`Record<id,
+isoTimestamp>` — see `scratchDates.ts`; plain `useState`, no context
+library) and a `markRevealed(option)` setter, passed down to `Home`
+(as `revealedDates`) and `DateReveal` (as both `revealedDates`, to
+evaluate gates, and `onReveal`) as props — not lifted into a context,
+since the prop-drilling depth here is exactly one level each way and a
+context would be pure ceremony.
 
-- `DateReveal` calls `onReveal(option.id)` in a `useEffect` whenever a
-  valid `:id` is visited — **for both `ready` and `pending` outcomes**.
-  A "No Bueno" is still a scratch; the tab doesn't go back to looking
-  unscratched just because there was nothing to win.
-- `Home` passes `revealed={revealedIds.has(option.id)}` to each
+This used to be a `Set<string>` (just *whether* an id had been
+revealed). It became a timestamp map when sequential gating shipped,
+since `waitDaysAfterPrevious` needs to measure elapsed time *since* a
+reveal, not just its existence.
+
+- `DateReveal` calls `onReveal(option)` in a `useEffect`, but **only
+  when `isScratchDateAvailable` says the date is actually available**
+  — unlike the old version, an undecided/out-of-order/still-time-
+  gated visit is never recorded, so none of those ever falsely count
+  as "scratched." (The old "a 'No Bueno' still counts as a scratch"
+  behavior no longer applies now that "No Bueno" also covers the two
+  new gated cases, not just undecided content.)
+- `Home` passes `revealed={option.id in revealedDates}` to each
   `ScratchPanel`. A panel with `revealed=true` renders straight into
   the post-scratch visual (no foil, no tap delay) and, if tapped again,
   navigates immediately instead of replaying the reveal animation —
-  there's nothing left to reveal.
+  there's nothing left to reveal. Note this only reflects "has been
+  revealed," not "is currently available" — a `ready`-but-gated entry
+  still renders as an ordinary unscratched row (deliberately: see
+  "Sequential gating" above on keeping the block vague until tapped).
 
 **Persisted to `localStorage`** under the key
-`secret-date-card:revealedIds` (a JSON array of ids) — read once on
-init via a lazy `useState` initializer, written on every change via a
-`useEffect` keyed on `revealedIds`. Both the read and the write are
-wrapped in `try/catch`: private browsing, storage disabled, or corrupt
-JSON all just fall back to "nothing remembered" rather than throwing —
-this is a cosmetic convenience, not something worth crashing the app
-over. (Previously in-memory only — survived client-side navigation
-within the SPA but reset on a hard page reload; changed by request.)
-Only `status: "ready"` ids ever land in `revealedIds` at all (see
-`markRevealed` in `App.tsx`), so this persistence never makes a
-`pending` slot look permanently used up.
+`secret-date-card:revealedDates` (a JSON object, `{id: isoTimestamp}`)
+— read once on init via a lazy `useState` initializer, written on
+every change via a `useEffect` keyed on `revealedDates`. Both the read
+and the write are wrapped in `try/catch`: private browsing, storage
+disabled, or corrupt JSON all just fall back to "nothing remembered"
+rather than throwing — this is a cosmetic convenience, not something
+worth crashing the app over. The storage key changed (from
+`...revealedIds`) along with the shape change above; per CLAUDE.md
+"Built for one person," losing previously-revealed state across that
+one upgrade was an accepted non-issue, not something worth writing a
+migration for.
 
 ## Scratch notification email
 
@@ -155,6 +204,62 @@ it was off by default for this site, so the very first deploy's form
 submissions failed (404) until it was enabled *and* a fresh deploy was
 triggered (enabling the setting doesn't retroactively reprocess an
 already-published deploy).
+
+## Loyalty stamp card
+
+A second, separate mini-feature bolted onto `Home`: a "★ Check your
+loyalty card ★" button below the ticket opens `StampCard`
+(`src/components/StampCard.tsx`) — a kraft-paper/ink-stamp "Date Club"
+card, styled after `docs/reference/punch-stamp-rewards-card-design-
+guide.png` — in a dimmed modal overlay (`.loyalty-modal-backdrop` /
+`.loyalty-modal` in `index.css`). Renamed from `PunchCard`/"punch
+card"; the reference image file kept its original name.
+
+- **Data model**: `src/data/stampDates.ts`'s `StampDate[]` —
+  `{ id, earned, reward }`. Deliberately a separate, independent array
+  from `scratchDates.ts`'s `ScratchDate`, not a shared/extended type —
+  no sequential gating, no wait/absolute-date gates, no
+  `revealedDates`-style runtime tracking. `earned` is a plain flag you
+  flip by hand when editing the file, same spirit as `ScratchDate`'s
+  `status`, but nothing the app ever writes to `localStorage` itself.
+  Earned stamps render their `reward` text stamped inside the circle
+  (short — 1-3 words, it has to fit); unearned ones stay a dashed
+  outline.
+- **`/stamp-card-study`** (`src/pages/StampCardStudy.tsx`) renders the
+  same `StampCard` component alone on a bare page, not linked from
+  nav — for eyeballing the design in isolation, same idea as
+  `/ticket-study`.
+- **Closable** three ways: the ✕ button, tapping the dimmed backdrop,
+  or Escape — all wired in `Home.tsx`'s modal-open effects.
+- **Background scroll is locked** while open (`document.documentElement.
+  style.overflow = "hidden"`, restored on close).
+- **Rendered via a React portal straight into `<body>`** (see
+  `Home.tsx`), not nested inside `#root` — deliberately, so it's
+  structurally unrelated to the ticket's own orientation lock (next
+  point). An earlier version nested it inside `#root` and coupled the
+  two locks together (one `#root` rule that flipped direction based on
+  a `.loyalty-open` class); that broke on report, because it depended
+  on `position: fixed` being "contained" by a transformed ancestor — a
+  real CSS Transforms spec rule that Chromium honors but that
+  WebKit/Safari is known not to reliably honor. The portal removes the
+  dependency entirely rather than working around it.
+- **Two fully independent forced-orientation locks**, the biggest
+  piece of this feature: `#root` (the whole ticket view) always
+  renders portrait; `.loyalty-modal-backdrop` (the stamp card, via the
+  portal above) always renders the opposite, landscape — regardless of
+  how the phone is actually being held, and regardless of whether the
+  other one happens to be active at the same time. See the "Forced
+  orientation locks" comment block in `index.css` for the full
+  mechanism (a hand-derived CSS rotate-and-reshape hack, since the
+  real Screen Orientation Lock API isn't reliable enough to use — no
+  Safari/iOS support at all, gated behind fullscreen on most Chromium)
+  and its known limitation (can't distinguish landscape-primary from
+  -secondary, so a phone rotated the "other" way sees it upside-down).
+  `.ticket-page`/`.reveal-page`/`.stamp-study-page` all use
+  `min-height: 100%` rather than `100dvh` specifically because of
+  `#root`'s lock — `100dvh` always measures the *real* viewport,
+  ignoring `#root`'s deliberately-swapped dimensions, which overflowed
+  badly the moment the lock engaged.
 
 ## Share link preview
 
@@ -407,7 +512,7 @@ system. Notable techniques, worked out there first:
   of that, `ArcText` is used for the ticket's own short, fixed
   headline strings (`.ticket__title`, `.ticket__declare`) but
   deliberately **not** for `.reveal-card__title`, which renders
-  arbitrary-length data from `dateOptions.ts` — that one stays plain
+  arbitrary-length data from `scratchDates.ts` — that one stays plain
   text so it can wrap normally.
 - **Flat fill color beats gradient-fill for outlined display text.**
   The first attempt used `background-clip: text` combined with
@@ -473,7 +578,7 @@ caught:
   anything — but 3 of 5 real examples on the board carry an explicit
   "X CHANCES TO WIN" / "WIN UP TO X TIMES" callout (DO: "multiple
   borders & frames"; motif "bursts"). Fixed by adding a second
-  `StampSeal` badge — **"`{dateOptions.length}` CHANCES / TO WIN"**,
+  `StampSeal` badge — **"`{scratchDates.length}` CHANCES / TO WIN"**,
   computed from the actual panel count, not hardcoded — hung off
   `.ticket__playarea`'s top-right corner (`.ticket__playarea-badge` in
   index.css) instead of the card's own corner, which the mascot
@@ -543,7 +648,7 @@ of horizontal ticket-stub rows:
   pattern — decorative only, not scannable, same as every real
   fake-lottery footer.
 - **Footer copy rewritten** around the mockup's fine-print voice: "★
-  Good luck, love! ★", odds stated as "1 in `{dateOptions.length}`"
+  Good luck, love! ★", odds stated as "1 in `{scratchDates.length}`"
   (computed, not hardcoded), a `TKT ######` ticket number replacing
   the old `No. ######` serial phrasing. The earlier "NEVER EXPIRES!"
   banner line and its "heat death of the universe" payoff were
@@ -690,7 +795,11 @@ stylistic at the same time.
   runtime state the app has; it's persisted client-side to
   `localStorage`, but there's still no server/database involved.
 - No real canvas-based scratch-to-erase interaction.
-- No auth/gating — anyone with the link can view any route.
+- No auth — anyone with the link can *visit* any route. "Sequential
+  gating" (above) governs what content a `/date/:id` visit actually
+  *shows*, not who's allowed to visit it — there's no login, no
+  per-visitor identity, nothing to distinguish "you" from anyone else
+  with the link.
 
 ## Decision log
 
@@ -698,7 +807,7 @@ stylistic at the same time.
   simplicity and reliable mobile touch behavior; revisit only if the
   "physicality" of a real scratch turns out to matter a lot.
 - **Fixed ticket = array order, no padding logic**: the ticket renders
-  exactly what's in `dateOptions`, in order. If you want empty-looking
+  exactly what's in `scratchDates`, in order. If you want empty-looking
   "unclaimed" slots, add explicit `pending` entries rather than adding
   padding logic to Home.
 - **Vite pinned to `^6`, oxlint pinned to `1.14.0`**: see
