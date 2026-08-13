@@ -13,6 +13,20 @@ interface ScratchPanelProps {
   piece: number;
   /** Already visited via /date/:id this session — render pre-scratched, no animation/delay. */
   revealed?: boolean;
+  /**
+   * Whether this entry is actually scratchable right now — see
+   * isScratchDateAvailable in src/data/scratchDates.ts. Governs
+   * whether tapping plays the local "reveal" animation at all (see
+   * handleTap): that animation pops `option.title` in on this row,
+   * in place, before navigating — fine when the tap is genuinely
+   * about to open a real reveal, but a real content leak for a
+   * pending/out-of-order/still-time-gated entry, since it would show
+   * the title regardless of the gate `/date/:id` is about to enforce
+   * anyway. Required (not defaulted to true) so every call site has
+   * to make an explicit gating decision rather than silently trusting
+   * a fallback.
+   */
+  available: boolean;
 }
 
 /**
@@ -41,17 +55,36 @@ interface ScratchPanelProps {
  * rasterization seam that appeared when the same element was both
  * rotated *and* had the animated gradient — with no rotation, there's
  * nothing for that bug to trigger on.
+ *
+ * `available` gates the local reveal animation itself, not just what
+ * happens after navigating: tapping a not-yet-available entry
+ * navigates straight to /date/:id with no in-place animation, so
+ * `option.title` (in `.scratch-row__teaser`/the aria-label below)
+ * never renders on this row at all unless the tap was actually going
+ * to open a real reveal. Found live: without this guard, tapping any
+ * row — including a still-time-gated or out-of-order one — popped its
+ * real title in on the ticket itself for the ~550ms before the
+ * subsequent /date/:id navigation corrected it with the vague
+ * fallback, defeating the entire point of the gate for that ~550ms.
  */
 export default function ScratchPanel({
   option,
   piece,
   revealed = false,
+  available,
 }: ScratchPanelProps) {
   const navigate = useNavigate();
   const [revealing, setRevealing] = useState(false);
 
   function handleTap() {
     if (revealed) {
+      navigate(`/date/${option.id}`);
+      return;
+    }
+    if (!available) {
+      // Not actually scratchable yet — skip the local "you won!"
+      // animation entirely (see this component's own doc comment for
+      // why) and let /date/:id show the vague fallback instead.
       navigate(`/date/${option.id}`);
       return;
     }
@@ -70,7 +103,11 @@ export default function ScratchPanel({
       className={`scratch-row${showScratched ? " is-revealing" : ""}`}
       onClick={handleTap}
       aria-label={
-        revealed ? `View: ${option.title}` : `Scratch off: ${option.title}`
+        revealed
+          ? `View: ${option.title}`
+          : available
+            ? `Scratch off: ${option.title}`
+            : `Scratch off: Chance #${piece}`
       }
     >
       <span className="scratch-row__tab" aria-hidden="true">

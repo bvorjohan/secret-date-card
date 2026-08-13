@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { scratchDates } from "../data/scratchDates";
+import { isScratchDateAvailable, scratchDates } from "../data/scratchDates";
 import type { RevealedDates } from "../data/scratchDates";
 import ScratchPanel from "../components/ScratchPanel";
 import MascotSticker from "../components/MascotSticker";
@@ -247,6 +247,7 @@ export default function Home({ revealedDates, onResetRevealed }: HomeProps) {
                 option={option}
                 piece={index + 1}
                 revealed={option.id in revealedDates}
+                available={isScratchDateAvailable(option.id, revealedDates)}
               />
             ))}
           </div>

@@ -104,6 +104,26 @@ evaluate yet.)
   the fallback split in two, just got a second flavor of the same
   non-answer.)
 
+**The vagueness has to hold on `/` too, not just on `/date/:id`.**
+`ScratchPanel` takes an `available` prop (`Home` computes it via
+`isScratchDateAvailable` for every row) and uses it to gate its own
+local "you scratched it!" reveal animation, not just what happens
+after navigating. That animation pops `option.title` in on the row
+itself, in place, ~550ms before navigating to `/date/:id` — harmless
+when the tap was genuinely about to open a real reveal, but a real
+leak otherwise: without the gate, tapping *any* row — pending,
+out-of-order, or still-time-locked — flashed its real title on the
+ticket itself for that whole ~550ms, regardless of what `/date/:id`
+was about to correctly reject it with. `available` (and the existing
+`revealed`) also gate the row's `aria-label`, for the same reason via
+a different channel — a screen reader shouldn't get the title read
+out early either. Found live, not in review: tapping an out-of-order
+row and watching its real title pop in before the redirect corrected
+it. Fixed by skipping the local animation entirely (immediate
+`navigate()`, no `setRevealing`/delay) whenever `available` is false;
+`/date/:id`'s own fallback page is what actually communicates
+anything at that point.
+
 ## Routes
 
 | Path         | Behavior |
